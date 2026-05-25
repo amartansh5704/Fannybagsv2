@@ -1,0 +1,309 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id                   String                @id @default(uuid())
+  email                String                @unique
+  name                 String
+  role                 String
+  createdAt            DateTime              @default(now())
+  passwordHash         String
+  phone                String?
+  updatedAt            DateTime              @updatedAt
+  artistProfile        ArtistProfile?
+  campaigns            Campaign[]
+  dealRequestsSent     DealRequest[]         @relation("ArtistDeals")
+  fanProfile           FanProfile?
+  investments          Investment[]
+  khapeetarProfile     KhapeetarProfile?
+  songs                Song[]
+  chatMessages         ChatMessage[]
+  wallet               Wallet?
+  royaltyDistributions RoyaltyDistribution[] @relation("RoyaltyDistributions")
+  royaltyPayouts       RoyaltyPayout[]       @relation("RoyaltyPayouts")
+}
+
+model ArtistProfile {
+  id        String   @id @default(uuid())
+  userId    String   @unique
+  stageName String?
+  genre     String?
+  bio       String?
+  city      String?
+  country   String?
+  instagram String?
+  spotify   String?
+  youtube   String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  user      User     @relation(fields: [userId], references: [id])
+}
+
+model FanProfile {
+  id                  String   @id @default(uuid())
+  userId              String   @unique
+  investmentInterests String[] @default([])
+  city                String?
+  country             String?
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+  user                User     @relation(fields: [userId], references: [id])
+}
+
+model KhapeetarProfile {
+  id                String        @id @default(uuid())
+  userId            String        @unique
+  name              String
+  email             String
+  phone             String?
+  skills            String[]      @default([])
+  primaryRole       String
+  city              String?
+  state             String?
+  country           String        @default("India")
+  workMode          String        @default("Remote")
+  availability      String        @default("Available Now")
+  startingBudget    Float         @default(0)
+  experienceYears   Int           @default(0)
+  projectsCompleted Int           @default(0)
+  bio               String?
+  profileImage      String?
+  instagram         String?
+  youtube           String?
+  spotifyCredits    String?
+  portfolioLinks    String[]      @default([])
+  isVerified        Boolean       @default(false)
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
+  dealsReceived     DealRequest[] @relation("KhapeetarDeals")
+  user              User          @relation(fields: [userId], references: [id])
+}
+
+model Song {
+  id                   String                @id @default(uuid())
+  artistId             String
+  title                String
+  language             String
+  demoUrl              String?
+  coverArtUrl          String?
+  status               String                @default("draft")
+  createdAt            DateTime              @default(now())
+  description          String?
+  genre                String?
+  updatedAt            DateTime              @updatedAt
+  campaign             Campaign?
+  distribution         Distribution?
+  artist               User                  @relation(fields: [artistId], references: [id])
+  metrics              SongMetrics?
+  royaltyDistributions RoyaltyDistribution[]
+}
+
+model Distribution {
+  id                String    @id @default(uuid())
+  songId            String    @unique
+  releaseStatus     String
+  releaseName       String?
+  primaryGenre      String?
+  releaseDate       DateTime?
+  explicitLyrics    Boolean   @default(false)
+  primaryArtist     String?
+  additionalArtists String[]  @default([])
+  songFileUrl       String?
+  hasFreeBeat       Boolean   @default(false)
+  migrationApproved Boolean   @default(false)
+  spotifyLink       String?
+  appleMusicLink    String?
+  releaseType       String    @default("single")
+  contributors      Json      @default("[]")
+  createdAt         DateTime  @default(now())
+  song              Song      @relation(fields: [songId], references: [id])
+}
+
+model Campaign {
+  id               String       @id @default(uuid())
+  songId           String       @unique
+  artistId         String
+  totalFundingAsk  Float
+  fanRevenueShare  Float
+  campaignEndDate  DateTime
+  royaltySharingOn Boolean      @default(true)
+  campaignStory    String?
+  budgetProduction Float        @default(0)
+  budgetMixMaster  Float        @default(0)
+  budgetVideoPromo Float        @default(0)
+  budgetMarketing  Float        @default(0)
+  budgetOther      Float        @default(0)
+  status           String       @default("draft")
+  amountRaised     Float        @default(0)
+  createdAt        DateTime     @default(now())
+  maxInvestment    Float?
+  minInvestment    Float        @default(100)
+  updatedAt        DateTime     @updatedAt
+  artist           User         @relation(fields: [artistId], references: [id])
+  song             Song         @relation(fields: [songId], references: [id])
+  investments      Investment[]
+  fundsReleased    Boolean      @default(false)
+  releasedAt       DateTime?
+  escrowHeldAmount Float        @default(0)
+}
+
+model Investment {
+  id           String   @id @default(uuid())
+  campaignId   String
+  fanId        String
+  amount       Float
+  ownershipPct Float
+  status       String   @default("active")
+  createdAt    DateTime @default(now())
+  campaign     Campaign @relation(fields: [campaignId], references: [id])
+  fan          User     @relation(fields: [fanId], references: [id])
+}
+
+model SongMetrics {
+  id                String   @id @default(uuid())
+  songId            String   @unique
+  totalStreams      Int      @default(0)
+  monthlyStreams    Int      @default(0)
+  totalRevenue      Float    @default(0)
+  monthlyRevenue    Float    @default(0)
+  fanPayoutsTotal   Float    @default(0)
+  artistEarnings    Float    @default(0)
+  totalInvestors    Int      @default(0)
+  campaignGrowthPct Float    @default(0)
+  updatedAt         DateTime @updatedAt
+  song              Song     @relation(fields: [songId], references: [id])
+}
+
+model DealRequest {
+  id String @id @default(uuid())
+
+  artistId    String
+  khapeetarId String
+
+  projectTitle String
+  workType     String
+  description  String
+
+  budget         Float
+  acceptedBudget Float?
+  counterBudget  Float?
+
+  deadline DateTime?
+
+  message        String?
+  counterMessage String?
+
+  status           String @default("pending")
+  negotiationStage String @default("artist_offer")
+
+  escrowAmount       Float?
+  artistCompleted    Boolean @default(false)
+  khapeetarCompleted Boolean @default(false)
+
+  // MULTI-OFFER SAFETY SYSTEM
+  offerGroupId    String?
+  selectedForWork Boolean   @default(false)
+  acceptedAt      DateTime?
+  selectedAt      DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  artist    User             @relation("ArtistDeals", fields: [artistId], references: [id])
+  khapeetar KhapeetarProfile @relation("KhapeetarDeals", fields: [khapeetarId], references: [id])
+
+  chatRoom DealChatRoom?
+}
+
+model Notification {
+  id        String   @id @default(uuid())
+  userId    String
+  type      String
+  title     String
+  body      String
+  read      Boolean  @default(false)
+  createdAt DateTime @default(now())
+}
+
+model DealChatRoom {
+  id     String      @id @default(uuid())
+  dealId String      @unique
+  deal   DealRequest @relation(fields: [dealId], references: [id])
+
+  messages ChatMessage[]
+
+  createdAt DateTime @default(now())
+}
+
+model ChatMessage {
+  id String @id @default(uuid())
+
+  roomId   String
+  senderId String
+  content  String
+
+  room   DealChatRoom @relation(fields: [roomId], references: [id])
+  sender User         @relation(fields: [senderId], references: [id])
+
+  createdAt DateTime @default(now())
+}
+
+model Wallet {
+  id             String   @id @default(uuid())
+  userId         String   @unique
+  balance        Float    @default(0)
+  totalDeposited Float    @default(0)
+  totalReceived  Float    @default(0)
+  totalSpent     Float    @default(0)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  user         User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  transactions WalletTransaction[]
+}
+
+model WalletTransaction {
+  id            String   @id @default(uuid())
+  walletId      String
+  type          String
+  amount        Float
+  description   String?
+  referenceId   String?
+  referenceType String?
+  createdAt     DateTime @default(now())
+
+  wallet Wallet @relation(fields: [walletId], references: [id], onDelete: Cascade)
+}
+
+model RoyaltyDistribution {
+  id              String   @id @default(uuid())
+  songId          String
+  revenueAmount   Float
+  spotifyStreams  Int      @default(0)
+  youtubeStreams  Int      @default(0)
+  appleStreams    Int      @default(0)
+  distributedAt   DateTime @default(now())
+  distributedById String
+
+  song          Song            @relation(fields: [songId], references: [id])
+  distributedBy User            @relation("RoyaltyDistributions", fields: [distributedById], references: [id])
+  payouts       RoyaltyPayout[]
+}
+
+model RoyaltyPayout {
+  id                    String   @id @default(uuid())
+  royaltyDistributionId String
+  userId                String
+  amount                Float
+  ownershipPct          Float
+  createdAt             DateTime @default(now())
+
+  distribution RoyaltyDistribution @relation(fields: [royaltyDistributionId], references: [id])
+  user         User                @relation("RoyaltyPayouts", fields: [userId], references: [id])
+}
