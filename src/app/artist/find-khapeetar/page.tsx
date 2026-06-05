@@ -1,15 +1,10 @@
 'use client'
+
 import { useEffect, useState } from 'react'
 import ArtistLayout from '@/components/artist/ArtistLayout'
-import { Search, Loader2, Users, MapPin, Zap, Star } from 'lucide-react'
+import { Search, Loader2, Users, MapPin, Star } from 'lucide-react'
 import Link from 'next/link'
 import { formatINR } from '@/lib/utils'
-
-const AVAILABILITY_COLOR: Record<string, string> = {
-  'Available Now': 'text-green-400 bg-green-500/10 border-green-500/20',
-  'Part-Time':     'text-amber-400 bg-amber-500/10 border-amber-500/20',
-  'Busy':          'text-red-400   bg-red-500/10   border-red-500/20',
-}
 
 const ROLES = ['All', 'Music Producer', 'Mix Engineer', 'Mastering Engineer', 'Beatmaker', 'Songwriter', 'Videographer', 'Marketer', 'A&R']
 const WORK_MODES = ['All', 'Remote', 'Onsite', 'Hybrid']
@@ -17,19 +12,19 @@ const AVAIL = ['All', 'Available Now', 'Part-Time', 'Busy']
 
 export default function FindKhapeetar() {
   const [profiles, setProfiles] = useState<any[]>([])
-  const [loading, setLoading]   = useState(true)
-  const [search, setSearch]     = useState('')
-  const [role, setRole]         = useState('All')
+  const [loading, setLoading] = useState(true)
+  const [search, setSearch] = useState('')
+  const [role, setRole] = useState('All')
   const [workMode, setWorkMode] = useState('All')
-  const [avail, setAvail]       = useState('All')
+  const [avail, setAvail] = useState('All')
 
   const fetchProfiles = () => {
     setLoading(true)
     const params = new URLSearchParams()
-    if (search)                params.set('search', search)
-    if (role !== 'All')        params.set('role', role)
-    if (workMode !== 'All')    params.set('workMode', workMode)
-    if (avail !== 'All')       params.set('availability', avail)
+    if (search) params.set('search', search)
+    if (role !== 'All') params.set('role', role)
+    if (workMode !== 'All') params.set('workMode', workMode)
+    if (avail !== 'All') params.set('availability', avail)
 
     fetch(`/api/khapeetar?${params}`)
       .then(r => r.json())
@@ -39,21 +34,13 @@ export default function FindKhapeetar() {
 
   useEffect(() => { fetchProfiles() }, [role, workMode, avail])
 
-  const handleSearch = (e: React.FormEvent) => {
-    e.preventDefault(); fetchProfiles()
-  }
-
-  const FilterPill = ({ options, value, onChange }: { options: string[]; value: string; onChange: (v: string) => void }) => (
-    <div className="flex gap-2 flex-wrap">
-      {options.map(opt => (
+  const FilterPill = ({ options, value, onChange }: any) => (
+    <div className="pillWrap">
+      {options.map((opt: string) => (
         <button
           key={opt}
           onClick={() => onChange(opt)}
-          className={`px-3 py-1.5 rounded-full text-xs border transition-all ${
-            value === opt
-              ? 'bg-purple-500/20 border-purple-500/40 text-purple-300'
-              : 'bg-white/5 border-white/10 text-zinc-500 hover:border-white/20'
-          }`}
+          className={value === opt ? 'pill activePill' : 'pill'}
         >
           {opt}
         </button>
@@ -63,119 +50,92 @@ export default function FindKhapeetar() {
 
   return (
     <ArtistLayout>
-      <div className="min-h-screen bg-black">
-        {/* Header */}
-        <div className="border-b border-white/5 px-8 py-5">
-          <h1 className="text-lg font-semibold">Find Khapeetar</h1>
-          <p className="text-sm text-zinc-500 mt-0.5">Hire music professionals for your project</p>
+      <div className="page">
+        <div className="header">
+          <h1>Find Khapeetar</h1>
+          <p>Hire music professionals for your project</p>
         </div>
 
-        <div className="px-8 py-6">
-          {/* Search */}
-          <form onSubmit={handleSearch} className="relative mb-5">
-            <Search size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-500" />
+        <div className="container">
+          <form onSubmit={(e)=>{e.preventDefault();fetchProfiles()}} className="searchForm">
+            <Search size={16} className="searchIcon" />
             <input
-              type="text"
               value={search}
-              onChange={e => setSearch(e.target.value)}
+              onChange={e=>setSearch(e.target.value)}
               placeholder="Search by name, skill, role..."
-              className="w-full bg-white/5 border border-white/10 rounded-xl pl-10 pr-4 py-3 text-sm outline-none focus:border-purple-500/60 transition-all placeholder:text-zinc-600"
+              className="searchInput"
             />
-            <button type="submit" className="absolute right-3 top-1/2 -translate-y-1/2 px-3 py-1.5 bg-purple-500/20 border border-purple-500/30 text-purple-300 rounded-lg text-xs">
-              Search
-            </button>
+            <button type="submit" className="searchBtn">Search</button>
           </form>
 
-          {/* Filters */}
-          <div className="space-y-3 mb-6 bg-white/2 border border-white/6 rounded-2xl p-4">
-            <div>
-              <p className="text-xs text-zinc-600 uppercase tracking-wider mb-2">Role</p>
+          <div className="filtersCard">
+            <div className="filterBlock">
+              <label>Role</label>
               <FilterPill options={ROLES} value={role} onChange={setRole} />
             </div>
-            <div>
-              <p className="text-xs text-zinc-600 uppercase tracking-wider mb-2">Work Mode</p>
+
+            <div className="filterBlock">
+              <label>Work Mode</label>
               <FilterPill options={WORK_MODES} value={workMode} onChange={setWorkMode} />
             </div>
-            <div>
-              <p className="text-xs text-zinc-600 uppercase tracking-wider mb-2">Availability</p>
+
+            <div className="filterBlock">
+              <label>Availability</label>
               <FilterPill options={AVAIL} value={avail} onChange={setAvail} />
             </div>
           </div>
 
-          {/* Results count */}
-          {!loading && (
-            <p className="text-xs text-zinc-600 mb-4">{profiles.length} Khapeetar{profiles.length !== 1 ? 's' : ''} found</p>
-          )}
+          {!loading && <p className="count">{profiles.length} Khapeetars found</p>}
 
           {loading && (
-            <div className="flex justify-center py-20">
-              <Loader2 className="animate-spin text-purple-400" size={28} />
+            <div className="loaderWrap">
+              <Loader2 className="spin" />
             </div>
           )}
 
           {!loading && profiles.length === 0 && (
-            <div className="flex flex-col items-center justify-center py-24 text-center">
-              <Users size={36} className="text-zinc-700 mb-3" />
-              <p className="text-zinc-400 font-medium mb-1">No Khapeetars found</p>
-              <p className="text-zinc-600 text-sm">Try adjusting your filters</p>
+            <div className="emptyState">
+              <Users size={40} />
+              <h3>No Khapeetars found</h3>
             </div>
           )}
 
-          {/* Grid */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-            {profiles.map(p => (
+          <div className="grid">
+            {profiles.map((p) => (
               <Link key={p.id} href={`/artist/find-khapeetar/${p.id}`}>
-                <div className="group bg-white/3 border border-white/8 rounded-2xl p-5 hover:border-purple-500/30 hover:bg-white/5 transition-all duration-300 cursor-pointer h-full flex flex-col">
-                  {/* Avatar */}
-                  <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-purple-500/30 to-pink-500/20 flex items-center justify-center mb-4 text-lg font-semibold text-white flex-shrink-0">
-                    {p.name.charAt(0).toUpperCase()}
+                <div className="profileCard">
+                  <div className="avatar">
+                    {p.name?.charAt(0)?.toUpperCase()}
                   </div>
 
-                  <div className="flex-1">
-                    <div className="flex items-start justify-between mb-1">
-                      <h3 className="font-semibold text-white text-sm">{p.name}</h3>
-                      {p.isVerified && <Star size={12} className="text-yellow-400 flex-shrink-0 mt-0.5" />}
-                    </div>
-                    <p className="text-xs text-purple-300 mb-2">{p.primaryRole}</p>
+                  <h3>{p.name}</h3>
 
-                    {/* Location */}
-                    {(p.city || p.state) && (
-                      <div className="flex items-center gap-1 text-xs text-zinc-500 mb-2">
-                        <MapPin size={10} />
-                        <span>{[p.city, p.state].filter(Boolean).join(', ')}</span>
-                        <span className="text-zinc-700">·</span>
-                        <span>{p.workMode}</span>
-                      </div>
-                    )}
-
-                    {/* Availability */}
-                    <span className={`inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full border mb-3 ${AVAILABILITY_COLOR[p.availability] ?? 'text-zinc-400 bg-white/5 border-white/10'}`}>
-                      <span className="w-1 h-1 rounded-full bg-current" />
-                      {p.availability}
-                    </span>
-
-                    {/* Skills */}
-                    <div className="flex flex-wrap gap-1 mb-3">
-                      {p.skills.slice(0, 3).map((s: string) => (
-                        <span key={s} className="text-xs bg-white/5 border border-white/8 text-zinc-400 px-2 py-0.5 rounded-full">{s}</span>
-                      ))}
-                      {p.skills.length > 3 && (
-                        <span className="text-xs text-zinc-600">+{p.skills.length - 3}</span>
-                      )}
-                    </div>
+                  <div className="roleRow">
+                    <span>{p.primaryRole}</span>
+                    {p.isVerified && <Star size={12} />}
                   </div>
 
-                  {/* Footer */}
-                  <div className="flex items-center justify-between pt-3 border-t border-white/6 mt-auto">
+                  {(p.city || p.state) && (
+                    <div className="location">
+                      <MapPin size={12} />
+                      {[p.city, p.state].filter(Boolean).join(', ')}
+                    </div>
+                  )}
+
+                  <div className="skills">
+                    {p.skills?.slice(0,3).map((s:string)=>(
+                      <span key={s} className="skillTag">{s}</span>
+                    ))}
+                  </div>
+
+                  <div className="footer">
                     <div>
-                      <p className="text-xs text-zinc-600">Starting at</p>
-                      <p className="text-sm font-semibold text-emerald-300">
-                        {p.startingBudget > 0 ? formatINR(p.startingBudget) : 'Negotiable'}
-                      </p>
+                      <small>Starting at</small>
+                      <strong>{p.startingBudget > 0 ? formatINR(p.startingBudget) : 'Negotiable'}</strong>
                     </div>
-                    <div className="text-right">
-                      <p className="text-xs text-zinc-600">{p.experienceYears}y exp</p>
-                      <p className="text-xs text-zinc-500">{p.projectsCompleted} projects</p>
+
+                    <div>
+                      <small>{p.experienceYears}y exp</small>
                     </div>
                   </div>
                 </div>
@@ -183,6 +143,37 @@ export default function FindKhapeetar() {
             ))}
           </div>
         </div>
+
+        <style jsx>{`
+          .page{min-height:100vh;background:#050505;color:#fff}
+          .header{padding:24px 32px;border-bottom:1px solid rgba(255,255,255,.06)}
+          .header h1{font-size:28px;font-weight:700}
+          .header p{color:#888;margin-top:6px}
+          .container{padding:24px 32px}
+          .searchForm{position:relative;margin-bottom:20px}
+          .searchIcon{position:absolute;left:16px;top:18px;color:#777}
+          .searchInput{width:100%;height:54px;padding:0 120px 0 46px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.1);border-radius:18px;color:#fff}
+          .searchBtn{position:absolute;right:8px;top:8px;height:38px;padding:0 16px;border:none;border-radius:12px;color:#fff;background:linear-gradient(135deg,#a855f7,#ec4899)}
+          .filtersCard{background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.08);padding:20px;border-radius:24px;margin-bottom:24px}
+          .filterBlock{margin-bottom:18px}
+          .filterBlock label{display:block;margin-bottom:10px;color:#888;font-size:12px}
+          .pillWrap{display:flex;flex-wrap:wrap;gap:8px}
+          .pill{padding:8px 14px;border-radius:999px;background:#111;border:1px solid #222;color:#aaa}
+          .activePill{background:rgba(168,85,247,.2);border-color:rgba(168,85,247,.4);color:#e9d5ff}
+          .count{color:#888;margin-bottom:16px}
+          .loaderWrap,.emptyState{display:flex;justify-content:center;align-items:center;flex-direction:column;padding:60px}
+          .spin{animation:spin 1s linear infinite}
+          .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:16px}
+          .profileCard{background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.08);padding:20px;border-radius:24px;transition:.3s}
+          .profileCard:hover{transform:translateY(-4px);box-shadow:0 20px 60px rgba(168,85,247,.15)}
+          .avatar{width:48px;height:48px;border-radius:16px;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,#a855f766,#ec489944);margin-bottom:12px}
+          .roleRow{display:flex;justify-content:space-between;color:#c084fc;margin:8px 0}
+          .location{display:flex;gap:6px;color:#888;font-size:12px;margin-bottom:12px}
+          .skills{display:flex;flex-wrap:wrap;gap:6px}
+          .skillTag{padding:4px 10px;border-radius:999px;border:1px solid rgba(255,255,255,.08);color:#aaa;font-size:12px}
+          .footer{margin-top:16px;padding-top:12px;border-top:1px solid rgba(255,255,255,.08);display:flex;justify-content:space-between}
+          @keyframes spin{to{transform:rotate(360deg)}}
+        `}</style>
       </div>
     </ArtistLayout>
   )

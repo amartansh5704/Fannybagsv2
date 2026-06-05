@@ -219,6 +219,11 @@ model DealRequest {
   khapeetar KhapeetarProfile @relation("KhapeetarDeals", fields: [khapeetarId], references: [id])
 
   chatRoom DealChatRoom?
+  
+  adminAction   String?
+  adminActionAt DateTime?
+
+
 }
 
 model Notification {

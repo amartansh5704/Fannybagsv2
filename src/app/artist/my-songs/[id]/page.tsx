@@ -1,306 +1,1349 @@
 'use client'
+
 import { useEffect, useState } from 'react'
 import { useParams } from 'next/navigation'
 import ArtistLayout from '@/components/artist/ArtistLayout'
-import { formatINR, formatStreams, progressPct, calculateBreakeven } from '@/lib/utils'
 import {
-  ArrowLeft, Music, TrendingUp, Users, Mic2,
-  BarChart2, Loader2, DollarSign, Activity, Star
+  ArrowLeft,
+  Music2,
+  TrendingUp,
+  Users,
+  Activity,
+  Loader2,
+  DollarSign,
+  Sparkles,
+  BarChart3,
+  Disc3,
+  Wallet,
+  Coins,
+  AlertTriangle,
 } from 'lucide-react'
 import Link from 'next/link'
+import {
+  formatINR,
+  formatStreams,
+  progressPct,
+  calculateBreakeven,
+} from '@/lib/utils'
 
-const REVENUE_PER_STREAM = 0.0005
+const REVENUE_PER_STREAM = 0.05 // 5 paisa
 
-const STATUS_STYLES: Record<string, string> = {
-  pending_approval: 'bg-amber-500/15 text-amber-300 border-amber-500/30',
-  live:             'bg-green-500/15  text-green-300  border-green-500/30',
-  funded:           'bg-blue-500/15   text-blue-300   border-blue-500/30',
-  failed:           'bg-red-500/15    text-red-400    border-red-500/30',
-  draft:            'bg-white/8       text-zinc-400   border-white/10',
+const STATUS_STYLES: Record<
+  string,
+  string
+> = {
+  pending_approval:
+    'statusAmber',
+  live: 'statusGreen',
+  funded: 'statusBlue',
+  failed: 'statusRed',
+  draft: 'statusGray',
 }
-const STATUS_LABELS: Record<string, string> = {
-  pending_approval: '⏳ Pending Admin Review',
-  live:             '🟢 Live',
-  funded:           '✅ Funded',
-  failed:           '❌ Failed',
-  draft:            '📝 Draft',
+
+const STATUS_LABELS: Record<
+  string,
+  string
+> = {
+  pending_approval:
+    'Pending Review',
+  live: 'Live',
+  funded: 'Funded',
+  failed: 'Failed',
+  draft: 'Draft',
 }
 
 export default function SongDetailPage() {
-  const { id }            = useParams<{ id: string }>()
-  const [song, setSong]   = useState<any>(null)
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState('')
+  const { id } =
+    useParams<{ id: string }>()
+
+  const [song, setSong] =
+    useState<any>(null)
+
+  const [loading, setLoading] =
+    useState(true)
+
+  const [error, setError] =
+    useState('')
 
   useEffect(() => {
     fetch(`/api/songs/${id}`)
-      .then(r => r.json())
-      .then(j => { if (j.success) setSong(j.data); else setError('Song not found') })
-      .catch(() => setError('Network error'))
-      .finally(() => setLoading(false))
+      .then((r) => r.json())
+      .then((j) => {
+        if (j.success)
+          setSong(j.data)
+        else
+          setError(
+            'Song not found'
+          )
+      })
+      .catch(() =>
+        setError('Network error')
+      )
+      .finally(() =>
+        setLoading(false)
+      )
   }, [id])
 
-  if (loading) return (
-    <ArtistLayout>
-      <div className="flex items-center justify-center min-h-screen">
-        <Loader2 className="animate-spin text-purple-400" size={32} />
-      </div>
-    </ArtistLayout>
-  )
+  if (loading)
+    return (
+      <ArtistLayout>
+        <>
+          <style jsx>{`
+            .loaderPage {
+              min-height: 100vh;
+              background: #050505;
+              display: flex;
+              align-items: center;
+              justify-content: center;
+            }
 
-  if (error || !song) return (
-    <ArtistLayout>
-      <div className="flex flex-col items-center justify-center min-h-screen gap-4">
-        <p className="text-red-400">{error || 'Song not found'}</p>
-        <Link href="/artist/my-songs" className="text-sm text-purple-400 hover:underline">← Back to My Songs</Link>
-      </div>
-    </ArtistLayout>
-  )
+            .spin {
+              animation: spin 1s linear infinite;
+              color: #a855f7;
+            }
 
-  const c         = song.campaign
-  const m         = song.metrics
-  const dist      = song.distribution
-  const fanShare  = c?.fanRevenueShare ?? 0
-  const artistPct = 100 - fanShare
-  const pct       = c ? progressPct(c.amountRaised, c.totalFundingAsk) : 0
-  const breakeven = c ? calculateBreakeven(c.totalFundingAsk, fanShare) : 0
-  const fanPayPS  = REVENUE_PER_STREAM * (fanShare / 100)
-  const status    = c?.status ?? song.status ?? 'draft'
+            @keyframes spin {
+              to {
+                transform: rotate(
+                  360deg
+                );
+              }
+            }
+          `}</style>
 
-  // Per 1M streams projections
-  const perM        = REVENUE_PER_STREAM * 1_000_000
-  const fanPoolPerM  = perM * (fanShare / 100)
-  const artistPerM   = perM * (artistPct / 100)
+          <div className="loaderPage">
+            <Loader2
+              size={36}
+              className="spin"
+            />
+          </div>
+        </>
+      </ArtistLayout>
+    )
 
-  const StatCard = ({ icon: Icon, label, value, sub, color = 'text-white' }: {
-    icon: any; label: string; value: string; sub?: string; color?: string
-  }) => (
-    <div className="bg-white/3 border border-white/8 rounded-2xl p-4">
-      <div className="flex items-center gap-2 mb-2">
-        <Icon size={14} className="text-zinc-500" />
-        <span className="text-xs text-zinc-500 uppercase tracking-wider">{label}</span>
-      </div>
-      <p className={`text-xl font-semibold ${color}`}>{value}</p>
-      {sub && <p className="text-xs text-zinc-600 mt-0.5">{sub}</p>}
-    </div>
-  )
+  if (error || !song)
+    return (
+      <ArtistLayout>
+        <>
+          <style jsx>{`
+            .errorPage {
+              min-height: 100vh;
+              background: #050505;
+              color: white;
+              display: flex;
+              flex-direction: column;
+              align-items: center;
+              justify-content: center;
+              gap: 18px;
+              font-family: Inter,
+                sans-serif;
+            }
 
-  const LiveBadge = () => (
-    <span className="text-xs bg-blue-500/10 text-blue-400 border border-blue-500/20 px-2 py-0.5 rounded-full">
-      Live from backend
-    </span>
-  )
+            .back {
+              color: #a855f7;
+              text-decoration: none;
+            }
+          `}</style>
+
+          <div className="errorPage">
+            <AlertTriangle
+              size={36}
+              color="#f87171"
+            />
+
+            <div>
+              {error ||
+                'Song not found'}
+            </div>
+
+            <Link
+              href="/artist/my-songs"
+              className="back"
+            >
+              Back to My Songs
+            </Link>
+          </div>
+        </>
+      </ArtistLayout>
+    )
+
+  const c = song.campaign
+  const m = song.metrics
+  const dist =
+    song.distribution
+
+  const fanShare =
+    c?.fanRevenueShare ?? 0
+
+  const artistPct =
+    100 - fanShare
+
+  const pct = c
+    ? progressPct(
+        c.amountRaised,
+        c.totalFundingAsk
+      )
+    : 0
+
+  const breakeven = c
+    ? calculateBreakeven(
+        c.totalFundingAsk,
+        fanShare
+      )
+    : 0
+
+  const fanPayPS =
+    REVENUE_PER_STREAM *
+    (fanShare / 100)
+
+  const status =
+    c?.status ??
+    song.status ??
+    'draft'
+
+  const perM =
+    REVENUE_PER_STREAM *
+    1_000_000
+
+  const fanPoolPerM =
+    perM * (fanShare / 100)
+
+  const artistPerM =
+    perM * (artistPct / 100)
 
   return (
     <ArtistLayout>
-      <div className="min-h-screen bg-black">
-        {/* Top bar */}
-        <div className="sticky top-0 z-10 bg-black/80 backdrop-blur border-b border-white/6 px-8 py-4 flex items-center justify-between">
-          <Link href="/artist/my-songs" className="flex items-center gap-2 text-zinc-500 hover:text-white text-sm transition-colors">
-            <ArrowLeft size={15} /> My Songs
-          </Link>
-          <span className={`text-xs px-3 py-1 rounded-full border font-medium ${STATUS_STYLES[status] ?? STATUS_STYLES.draft}`}>
-            {STATUS_LABELS[status] ?? status}
-          </span>
-        </div>
+      <>
+        <style jsx>{`
+          .page {
+            min-height: 100vh;
+            background: #050505;
+            color: white;
+            font-family: Inter,
+              sans-serif;
+          }
 
-        <div className="max-w-5xl mx-auto px-6 py-8 space-y-8">
-          {/* Hero */}
-          <div className="relative rounded-3xl border border-white/8 overflow-hidden bg-gradient-to-br from-purple-900/20 via-black to-pink-900/10 p-8">
-            <div className="absolute top-0 right-0 w-80 h-80 bg-purple-500/8 rounded-full blur-3xl pointer-events-none" />
-            <div className="flex gap-6 items-start relative">
-              <div className="w-32 h-32 rounded-2xl border border-white/10 overflow-hidden flex-shrink-0 bg-white/5 flex items-center justify-center">
-                {song.coverArtUrl
-                  ? <img src={song.coverArtUrl} alt={song.title} className="w-full h-full object-cover" />
-                  : <Music size={36} className="text-zinc-600" />
-                }
-              </div>
-              <div className="flex-1">
-                <div className="flex flex-wrap gap-2 mb-2">
-                  {song.genre && (
-                    <span className="text-xs bg-purple-500/20 text-purple-300 border border-purple-500/30 px-2.5 py-0.5 rounded-full">{song.genre}</span>
-                  )}
-                  <span className="text-xs bg-white/5 text-zinc-400 border border-white/10 px-2.5 py-0.5 rounded-full">{song.language}</span>
-                  {dist?.explicitLyrics && (
-                    <span className="text-xs bg-red-500/20 text-red-400 border border-red-500/30 px-2.5 py-0.5 rounded-full">E</span>
+          .topbar {
+            position: sticky;
+            top: 0;
+            z-index: 50;
+            backdrop-filter: blur(20px);
+            background: rgba(
+              0,
+              0,
+              0,
+              0.75
+            );
+            border-bottom: 1px solid
+              rgba(255, 255, 255, 0.06);
+            padding: 18px 34px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+          }
+
+          .backBtn {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            color: #71717a;
+            text-decoration: none;
+            font-size: 14px;
+            transition: 0.3s;
+          }
+
+          .backBtn:hover {
+            color: white;
+          }
+
+          .status {
+            padding: 8px 16px;
+            border-radius: 999px;
+            font-size: 12px;
+            font-weight: 600;
+            border: 1px solid;
+          }
+
+          .statusAmber {
+            background: rgba(
+              245,
+              158,
+              11,
+              0.12
+            );
+            border-color: rgba(
+              245,
+              158,
+              11,
+              0.24
+            );
+            color: #fbbf24;
+          }
+
+          .statusGreen {
+            background: rgba(
+              34,
+              197,
+              94,
+              0.12
+            );
+            border-color: rgba(
+              34,
+              197,
+              94,
+              0.24
+            );
+            color: #4ade80;
+          }
+
+          .statusBlue {
+            background: rgba(
+              59,
+              130,
+              246,
+              0.12
+            );
+            border-color: rgba(
+              59,
+              130,
+              246,
+              0.24
+            );
+            color: #60a5fa;
+          }
+
+          .statusRed {
+            background: rgba(
+              239,
+              68,
+              68,
+              0.12
+            );
+            border-color: rgba(
+              239,
+              68,
+              68,
+              0.24
+            );
+            color: #f87171;
+          }
+
+          .statusGray {
+            background: rgba(
+              255,
+              255,
+              255,
+              0.05
+            );
+            border-color: rgba(
+              255,
+              255,
+              255,
+              0.08
+            );
+            color: #a1a1aa;
+          }
+
+          .container {
+            max-width: 1250px;
+            margin: 0 auto;
+            padding: 34px 24px 80px;
+          }
+
+          .hero {
+            position: relative;
+            overflow: hidden;
+            border-radius: 36px;
+            border: 1px solid
+              rgba(255, 255, 255, 0.08);
+            background: linear-gradient(
+              135deg,
+              rgba(168, 85, 247, 0.12),
+              rgba(236, 72, 153, 0.06),
+              rgba(255, 255, 255, 0.02)
+            );
+            padding: 34px;
+            margin-bottom: 24px;
+          }
+
+          .heroGlow {
+            position: absolute;
+            right: -120px;
+            top: -120px;
+            width: 320px;
+            height: 320px;
+            border-radius: 999px;
+            background: rgba(
+              168,
+              85,
+              247,
+              0.16
+            );
+            filter: blur(100px);
+          }
+
+          .heroContent {
+            position: relative;
+            z-index: 2;
+            display: flex;
+            gap: 28px;
+          }
+
+          .cover {
+            width: 150px;
+            height: 150px;
+            border-radius: 30px;
+            overflow: hidden;
+            border: 1px solid
+              rgba(255, 255, 255, 0.08);
+            background: rgba(
+              255,
+              255,
+              255,
+              0.04
+            );
+            flex-shrink: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+          }
+
+          .cover img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+          }
+
+          .badges {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-bottom: 18px;
+          }
+
+          .badge {
+            padding: 8px 14px;
+            border-radius: 999px;
+            font-size: 12px;
+            border: 1px solid
+              rgba(255, 255, 255, 0.08);
+          }
+
+          .purple {
+            background: rgba(
+              168,
+              85,
+              247,
+              0.14
+            );
+            color: #d8b4fe;
+            border-color: rgba(
+              168,
+              85,
+              247,
+              0.24
+            );
+          }
+
+          .gray {
+            background: rgba(
+              255,
+              255,
+              255,
+              0.05
+            );
+            color: #a1a1aa;
+          }
+
+          .red {
+            background: rgba(
+              239,
+              68,
+              68,
+              0.12
+            );
+            color: #f87171;
+            border-color: rgba(
+              239,
+              68,
+              68,
+              0.24
+            );
+          }
+
+          .title {
+            font-size: 44px;
+            font-weight: 900;
+            line-height: 1;
+            letter-spacing: -0.05em;
+            margin-bottom: 12px;
+          }
+
+          .artist {
+            color: #71717a;
+            font-size: 15px;
+            margin-bottom: 18px;
+          }
+
+          .artist strong {
+            color: white;
+          }
+
+          .description {
+            margin-top: 20px;
+            padding-top: 20px;
+            border-top: 1px solid
+              rgba(255, 255, 255, 0.06);
+            color: #a1a1aa;
+            line-height: 1.8;
+            font-size: 14px;
+          }
+
+          .stats {
+            display: grid;
+            grid-template-columns: repeat(
+              4,
+              1fr
+            );
+            gap: 16px;
+            margin-bottom: 24px;
+          }
+
+          .statCard {
+            background: rgba(
+              255,
+              255,
+              255,
+              0.03
+            );
+            border: 1px solid
+              rgba(255, 255, 255, 0.08);
+            border-radius: 28px;
+            padding: 22px;
+          }
+
+          .statTop {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 14px;
+          }
+
+          .statLabel {
+            color: #71717a;
+            font-size: 12px;
+            margin-bottom: 8px;
+          }
+
+          .statValue {
+            font-size: 24px;
+            font-weight: 800;
+          }
+
+          .section {
+            background: rgba(
+              255,
+              255,
+              255,
+              0.03
+            );
+            border: 1px solid
+              rgba(255, 255, 255, 0.08);
+            border-radius: 30px;
+            padding: 28px;
+            margin-bottom: 24px;
+          }
+
+          .sectionTitle {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 24px;
+            font-size: 15px;
+            font-weight: 600;
+          }
+
+          .progress {
+            width: 100%;
+            height: 10px;
+            border-radius: 999px;
+            overflow: hidden;
+            background: rgba(
+              255,
+              255,
+              255,
+              0.06
+            );
+            margin-top: 18px;
+          }
+
+          .progressFill {
+            height: 100%;
+            background: linear-gradient(
+              90deg,
+              #a855f7,
+              #ec4899
+            );
+          }
+
+          .grid2 {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 18px;
+          }
+
+          .metricRow {
+            display: flex;
+            justify-content: space-between;
+            padding: 12px 0;
+            border-bottom: 1px solid
+              rgba(255, 255, 255, 0.05);
+            font-size: 14px;
+          }
+
+          .metricRow:last-child {
+            border-bottom: none;
+          }
+
+          .muted {
+            color: #71717a;
+          }
+
+          .strong {
+            font-weight: 600;
+          }
+
+          .big {
+            font-size: 52px;
+            font-weight: 900;
+            color: #d8b4fe;
+            margin-top: 18px;
+            line-height: 1;
+          }
+
+          .small {
+            color: #71717a;
+            font-size: 13px;
+            line-height: 1.7;
+            margin-top: 12px;
+          }
+
+          .table {
+            width: 100%;
+            border-collapse: collapse;
+          }
+
+          .table th {
+            text-align: left;
+            font-size: 11px;
+            color: #71717a;
+            text-transform: uppercase;
+            letter-spacing: 0.16em;
+            padding-bottom: 16px;
+          }
+
+          .table td {
+            padding: 16px 0;
+            border-top: 1px solid
+              rgba(255, 255, 255, 0.06);
+            font-size: 14px;
+          }
+
+          .liveBadge {
+            background: rgba(
+              59,
+              130,
+              246,
+              0.12
+            );
+            border: 1px solid
+              rgba(59, 130, 246, 0.22);
+            color: #60a5fa;
+            font-size: 11px;
+            padding: 4px 8px;
+            border-radius: 999px;
+          }
+
+          @media (max-width: 1000px) {
+            .stats {
+              grid-template-columns: 1fr
+                1fr;
+            }
+
+            .grid2 {
+              grid-template-columns: 1fr;
+            }
+
+            .heroContent {
+              flex-direction: column;
+            }
+          }
+
+          @media (max-width: 700px) {
+            .topbar {
+              padding: 18px;
+            }
+
+            .container {
+              padding: 20px;
+            }
+
+            .stats {
+              grid-template-columns: 1fr;
+            }
+
+            .title {
+              font-size: 34px;
+            }
+          }
+        `}</style>
+
+        <div className="page">
+          {/* TOPBAR */}
+          <div className="topbar">
+            <Link
+              href="/artist/my-songs"
+              className="backBtn"
+            >
+              <ArrowLeft size={15} />
+              My Songs
+            </Link>
+
+            <div
+              className={`status ${
+                STATUS_STYLES[
+                  status
+                ]
+              }`}
+            >
+              {
+                STATUS_LABELS[
+                  status
+                ]
+              }
+            </div>
+          </div>
+
+          <div className="container">
+            {/* HERO */}
+            <div className="hero">
+              <div className="heroGlow" />
+
+              <div className="heroContent">
+                <div className="cover">
+                  {song.coverArtUrl ? (
+                    <img
+                      src={
+                        song.coverArtUrl
+                      }
+                      alt={
+                        song.title
+                      }
+                    />
+                  ) : (
+                    <Music2
+                      size={42}
+                      color="#71717a"
+                    />
                   )}
                 </div>
-                <h1 className="text-3xl font-semibold tracking-tight mb-1">{song.title}</h1>
-                <p className="text-zinc-500 text-sm mb-2">
-                  by <span className="text-zinc-300">{dist?.primaryArtist || song.artist?.name || '—'}</span>
-                  {dist?.additionalArtists?.length > 0 && ` ft. ${dist.additionalArtists.join(', ')}`}
-                </p>
-                <p className="text-xs text-zinc-600">
-                  Created {new Date(song.createdAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' })}
-                </p>
-              </div>
-            </div>
-            {song.description && (
-              <p className="mt-5 text-sm text-zinc-400 leading-relaxed border-t border-white/6 pt-5">{song.description}</p>
-            )}
-          </div>
 
-          {/* Funding progress */}
-          {c && (
-            <div className="bg-white/3 border border-white/8 rounded-2xl p-5">
-              <div className="flex items-center justify-between mb-4">
-                <h2 className="text-sm font-medium flex items-center gap-2">
-                  <DollarSign size={15} className="text-green-400" /> Funding Progress
-                </h2>
-                <span className="text-2xl font-bold text-white">{pct}%</span>
-              </div>
-              <div className="h-2 bg-white/6 rounded-full overflow-hidden mb-3">
-                <div
-                  className="h-full rounded-full bg-gradient-to-r from-purple-500 to-pink-500 transition-all duration-700"
-                  style={{ width: `${pct}%` }}
-                />
-              </div>
-              <div className="grid grid-cols-3 gap-4 mt-3">
-                {[
-                  { label: 'Raised',  val: formatINR(c.amountRaised),    color: 'text-green-300' },
-                  { label: 'Target',  val: formatINR(c.totalFundingAsk), color: 'text-white' },
-                  { label: 'Remaining', val: formatINR(Math.max(0, c.totalFundingAsk - c.amountRaised)), color: 'text-zinc-400' },
-                ].map(({ label, val, color }) => (
-                  <div key={label} className="text-center">
-                    <p className="text-xs text-zinc-600 mb-0.5">{label}</p>
-                    <p className={`text-base font-semibold ${color}`}>{val}</p>
+                <div style={{ flex: 1 }}>
+                  <div className="badges">
+                    {song.genre && (
+                      <span className="badge purple">
+                        {
+                          song.genre
+                        }
+                      </span>
+                    )}
+
+                    <span className="badge gray">
+                      {
+                        song.language
+                      }
+                    </span>
+
+                    {dist?.explicitLyrics && (
+                      <span className="badge red">
+                        Explicit
+                      </span>
+                    )}
                   </div>
-                ))}
-              </div>
-            </div>
-          )}
 
-          {/* Finance grid */}
-          <div>
-            <h2 className="text-sm font-medium text-zinc-400 uppercase tracking-wider mb-3 flex items-center gap-2">
-              <BarChart2 size={14} /> Financial Details
-            </h2>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-              <StatCard icon={TrendingUp}  label="Fan Share"        value={`${fanShare}%`}                   color="text-purple-300" />
-              <StatCard icon={TrendingUp}  label="Artist Retains"   value={`${artistPct}%`}                  color="text-green-300" />
-              <StatCard icon={BarChart2}   label="Breakeven"        value={formatStreams(breakeven)}          sub="streams needed" />
-              <StatCard icon={DollarSign}  label="Fan Payout/Stream" value={`₹${fanPayPS.toFixed(7)}`} />
-            </div>
-          </div>
-
-          {/* Royalty projections */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="bg-gradient-to-br from-purple-500/10 to-transparent border border-purple-500/20 rounded-2xl p-5">
-              <h3 className="text-sm font-medium mb-4 flex items-center gap-2">
-                <Star size={14} className="text-purple-400" /> Per 1M Streams Projection
-              </h3>
-              <div className="space-y-3">
-                {[
-                  { label: 'Total Revenue',          val: formatINR(perM),        color: 'text-white' },
-                  { label: `Fan Pool (${fanShare}%)`, val: formatINR(fanPoolPerM), color: 'text-purple-300' },
-                  { label: `You (${artistPct}%)`,     val: formatINR(artistPerM),  color: 'text-green-300' },
-                ].map(({ label, val, color }) => (
-                  <div key={label} className="flex justify-between text-sm border-b border-white/6 pb-2 last:border-0 last:pb-0">
-                    <span className="text-zinc-500">{label}</span>
-                    <span className={`font-semibold ${color}`}>{val}</span>
+                  <div className="title">
+                    {song.title}
                   </div>
-                ))}
-              </div>
-              <div className="mt-4 h-1.5 rounded-full overflow-hidden bg-white/8 flex">
-                <div className="bg-gradient-to-r from-purple-500 to-pink-500 h-full" style={{ width: `${fanShare}%` }} />
-              </div>
-              <div className="flex justify-between text-xs text-zinc-600 mt-1">
-                <span>Fans {fanShare}%</span><span>You {artistPct}%</span>
-              </div>
-            </div>
 
-            {/* Live metrics */}
-            <div className="bg-white/3 border border-white/8 rounded-2xl p-5">
-              <h3 className="text-sm font-medium mb-1 flex items-center gap-2">
-                <Activity size={14} className="text-green-400" /> Live Metrics
-              </h3>
-              <p className="text-xs text-zinc-600 mb-4">Updated from backend in real-time</p>
-              <div className="space-y-3">
-                {[
-                  { label: 'Total Streams',      val: formatStreams(m?.totalStreams ?? 0) },
-                  { label: 'Monthly Streams',    val: formatStreams(m?.monthlyStreams ?? 0) },
-                  { label: 'Total Revenue',      val: formatINR(m?.totalRevenue ?? 0) },
-                  { label: 'Monthly Revenue',    val: formatINR(m?.monthlyRevenue ?? 0) },
-                  { label: 'Fan Payouts Total',  val: formatINR(m?.fanPayoutsTotal ?? 0) },
-                  { label: 'Artist Earnings',    val: formatINR(m?.artistEarnings ?? 0) },
-                  { label: 'Total Investors',    val: String(m?.totalInvestors ?? 0) },
-                ].map(({ label, val }) => (
-                  <div key={label} className="flex justify-between items-center text-sm border-b border-white/5 pb-2 last:border-0 last:pb-0">
-                    <div className="flex items-center gap-1.5">
-                      <span className="text-zinc-500">{label}</span>
-                      <LiveBadge />
+                  <div className="artist">
+                    by{' '}
+                    <strong>
+                      {dist?.primaryArtist ||
+                        song
+                          .artist
+                          ?.name}
+                    </strong>
+
+                    {dist?.additionalArtists
+                      ?.length >
+                      0 &&
+                      ` ft. ${dist.additionalArtists.join(
+                        ', '
+                      )}`}
+                  </div>
+
+                  {song.description && (
+                    <div className="description">
+                      {
+                        song.description
+                      }
                     </div>
-                    <span className="font-medium text-white">{val}</span>
-                  </div>
-                ))}
+                  )}
+                </div>
               </div>
             </div>
-          </div>
 
-          {/* Distribution info */}
-          {dist && (
-            <div>
-              <h2 className="text-sm font-medium text-zinc-400 uppercase tracking-wider mb-3 flex items-center gap-2">
-                <Mic2 size={14} /> Distribution Details
-              </h2>
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                {[
-                  { label: 'Release Status',  val: dist.releaseStatus === 'released' ? 'Released' : 'Unreleased' },
-                  { label: 'Primary Artist',  val: dist.primaryArtist || '—' },
-                  { label: 'Genre',           val: dist.primaryGenre  || '—' },
-                  { label: 'Explicit Lyrics', val: dist.explicitLyrics ? 'Yes' : 'No' },
-                  { label: 'Free Beat',       val: dist.hasFreeBeat   ? 'Yes' : 'No' },
-                  { label: 'Release Date',    val: dist.releaseDate ? new Date(dist.releaseDate).toLocaleDateString('en-IN') : '—' },
-                ].map(({ label, val }) => (
-                  <div key={label} className="bg-white/3 border border-white/8 rounded-xl px-4 py-3">
-                    <p className="text-xs text-zinc-600 mb-1">{label}</p>
-                    <p className="text-sm font-medium text-white">{val}</p>
+            {/* STATS */}
+            <div className="stats">
+              {[
+                {
+                  label:
+                    'Funding Ask',
+                  value:
+                    formatINR(
+                      c?.totalFundingAsk ||
+                        0
+                    ),
+                  icon:
+                    Wallet,
+                },
+                {
+                  label:
+                    'Amount Raised',
+                  value:
+                    formatINR(
+                      c?.amountRaised ||
+                        0
+                    ),
+                  icon:
+                    Coins,
+                },
+                {
+                  label:
+                    'Fan Share',
+                  value: `${fanShare}%`,
+                  icon:
+                    TrendingUp,
+                },
+                {
+                  label:
+                    'Investors',
+                  value: String(
+                    m?.totalInvestors ||
+                      0
+                  ),
+                  icon:
+                    Users,
+                },
+              ].map(
+                ({
+                  label,
+                  value,
+                  icon:
+                    Icon,
+                }) => (
+                  <div
+                    key={label}
+                    className="statCard"
+                  >
+                    <div className="statTop">
+                      <Icon
+                        size={
+                          18
+                        }
+                      />
+                    </div>
+
+                    <div className="statLabel">
+                      {label}
+                    </div>
+
+                    <div className="statValue">
+                      {value}
+                    </div>
                   </div>
-                ))}
-              </div>
-              {dist.additionalArtists?.length > 0 && (
-                <div className="mt-3 bg-white/3 border border-white/8 rounded-xl px-4 py-3">
-                  <p className="text-xs text-zinc-600 mb-1">Featured Artists</p>
-                  <p className="text-sm text-white">{dist.additionalArtists.join(', ')}</p>
-                </div>
+                )
               )}
             </div>
-          )}
 
-          {/* Investments (if any) */}
-          {c?.investments?.length > 0 && (
-            <div>
-              <h2 className="text-sm font-medium text-zinc-400 uppercase tracking-wider mb-3 flex items-center gap-2">
-                <Users size={14} /> Fan Investments
-              </h2>
-              <div className="bg-white/3 border border-white/8 rounded-2xl overflow-hidden">
-                <table className="w-full text-sm">
-                  <thead>
-                    <tr className="border-b border-white/6 text-xs text-zinc-600 uppercase tracking-wider">
-                      <th className="text-left px-4 py-3">Fan ID</th>
-                      <th className="text-right px-4 py-3">Amount</th>
-                      <th className="text-right px-4 py-3">Ownership</th>
-                      <th className="text-right px-4 py-3">Status</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {c.investments.map((inv: any) => (
-                      <tr key={inv.id} className="border-b border-white/4 last:border-0">
-                        <td className="px-4 py-3 text-zinc-400 font-mono text-xs">{inv.fanId.slice(0, 8)}…</td>
-                        <td className="px-4 py-3 text-right text-white font-medium">{formatINR(inv.amount)}</td>
-                        <td className="px-4 py-3 text-right text-purple-300">{inv.ownershipPct.toFixed(2)}%</td>
-                        <td className="px-4 py-3 text-right">
-                          <span className="text-xs bg-green-500/10 text-green-400 border border-green-500/20 px-2 py-0.5 rounded-full">{inv.status}</span>
+            {/* FUNDING */}
+            {c && (
+              <div className="section">
+                <div className="sectionTitle">
+                  <DollarSign
+                    size={16}
+                  />
+                  Funding Progress
+                </div>
+
+                <div className="metricRow">
+                  <span className="muted">
+                    Raised
+                  </span>
+
+                  <span className="strong">
+                    {formatINR(
+                      c.amountRaised
+                    )}
+                  </span>
+                </div>
+
+                <div className="metricRow">
+                  <span className="muted">
+                    Target
+                  </span>
+
+                  <span className="strong">
+                    {formatINR(
+                      c.totalFundingAsk
+                    )}
+                  </span>
+                </div>
+
+                <div className="metricRow">
+                  <span className="muted">
+                    Progress
+                  </span>
+
+                  <span className="strong">
+                    {pct}%
+                  </span>
+                </div>
+
+                <div className="progress">
+                  <div
+                    className="progressFill"
+                    style={{
+                      width: `${pct}%`,
+                    }}
+                  />
+                </div>
+              </div>
+            )}
+
+            {/* ECONOMICS */}
+            <div className="grid2">
+              <div className="section">
+                <div className="sectionTitle">
+                  <BarChart3
+                    size={16}
+                  />
+                  Economics
+                </div>
+
+                <div className="metricRow">
+                  <span className="muted">
+                    Revenue /
+                    Stream
+                  </span>
+
+                  <span className="strong">
+                    ₹0.05
+                  </span>
+                </div>
+
+                <div className="metricRow">
+                  <span className="muted">
+                    Fan Payout /
+                    Stream
+                  </span>
+
+                  <span className="strong">
+                    ₹
+                    {fanPayPS.toFixed(
+                      4
+                    )}
+                  </span>
+                </div>
+
+                <div className="metricRow">
+                  <span className="muted">
+                    Artist Share
+                  </span>
+
+                  <span className="strong">
+                    {
+                      artistPct
+                    }
+                    %
+                  </span>
+                </div>
+
+                <div className="big">
+                  {formatStreams(
+                    breakeven
+                  )}
+                </div>
+
+                <div className="small">
+                  Streams needed
+                  for fans to
+                  recover funding.
+                </div>
+              </div>
+
+              <div className="section">
+                <div className="sectionTitle">
+                  <Sparkles
+                    size={16}
+                  />
+                  Per 1M Streams
+                </div>
+
+                <div className="metricRow">
+                  <span className="muted">
+                    Total Revenue
+                  </span>
+
+                  <span className="strong">
+                    {formatINR(
+                      perM
+                    )}
+                  </span>
+                </div>
+
+                <div className="metricRow">
+                  <span className="muted">
+                    Fan Pool
+                  </span>
+
+                  <span className="strong">
+                    {formatINR(
+                      fanPoolPerM
+                    )}
+                  </span>
+                </div>
+
+                <div className="metricRow">
+                  <span className="muted">
+                    Artist Pool
+                  </span>
+
+                  <span className="strong">
+                    {formatINR(
+                      artistPerM
+                    )}
+                  </span>
+                </div>
+
+                <div className="progress">
+                  <div
+                    className="progressFill"
+                    style={{
+                      width: `${fanShare}%`,
+                    }}
+                  />
+                </div>
+
+                <div className="small">
+                  Fans receive{' '}
+                  {fanShare}% of
+                  streaming
+                  revenue.
+                </div>
+              </div>
+            </div>
+
+            {/* LIVE METRICS */}
+            <div className="section">
+              <div className="sectionTitle">
+                <Activity
+                  size={16}
+                />
+                Live Metrics
+              </div>
+
+              <table className="table">
+                <thead>
+                  <tr>
+                    <th>
+                      Metric
+                    </th>
+                    <th>
+                      Value
+                    </th>
+                    <th>
+                      Status
+                    </th>
+                  </tr>
+                </thead>
+
+                <tbody>
+                  {[
+                    [
+                      'Total Streams',
+                      formatStreams(
+                        m?.totalStreams ||
+                          0
+                      ),
+                    ],
+                    [
+                      'Monthly Streams',
+                      formatStreams(
+                        m?.monthlyStreams ||
+                          0
+                      ),
+                    ],
+                    [
+                      'Total Revenue',
+                      formatINR(
+                        m?.totalRevenue ||
+                          0
+                      ),
+                    ],
+                    [
+                      'Monthly Revenue',
+                      formatINR(
+                        m?.monthlyRevenue ||
+                          0
+                      ),
+                    ],
+                    [
+                      'Fan Payouts',
+                      formatINR(
+                        m?.fanPayoutsTotal ||
+                          0
+                      ),
+                    ],
+                    [
+                      'Artist Earnings',
+                      formatINR(
+                        m?.artistEarnings ||
+                          0
+                      ),
+                    ],
+                  ].map(
+                    (
+                      [
+                        label,
+                        value,
+                      ],
+                      i
+                    ) => (
+                      <tr
+                        key={
+                          i
+                        }
+                      >
+                        <td>
+                          {
+                            label
+                          }
+                        </td>
+
+                        <td>
+                          <strong>
+                            {
+                              value
+                            }
+                          </strong>
+                        </td>
+
+                        <td>
+                          <span className="liveBadge">
+                            Live
+                          </span>
                         </td>
                       </tr>
-                    ))}
+                    )
+                  )}
+                </tbody>
+              </table>
+            </div>
+
+            {/* DISTRIBUTION */}
+            {dist && (
+              <div className="section">
+                <div className="sectionTitle">
+                  <Disc3
+                    size={16}
+                  />
+                  Distribution
+                  Details
+                </div>
+
+                <div className="grid2">
+                  <div>
+                    <div className="metricRow">
+                      <span className="muted">
+                        Release
+                        Status
+                      </span>
+
+                      <span className="strong">
+                        {dist.releaseStatus ===
+                        'released'
+                          ? 'Released'
+                          : 'Unreleased'}
+                      </span>
+                    </div>
+
+                    <div className="metricRow">
+                      <span className="muted">
+                        Genre
+                      </span>
+
+                      <span className="strong">
+                        {
+                          dist.primaryGenre
+                        }
+                      </span>
+                    </div>
+
+                    <div className="metricRow">
+                      <span className="muted">
+                        Explicit
+                      </span>
+
+                      <span className="strong">
+                        {dist.explicitLyrics
+                          ? 'Yes'
+                          : 'No'}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div>
+                    <div className="metricRow">
+                      <span className="muted">
+                        Free Beat
+                      </span>
+
+                      <span className="strong">
+                        {dist.hasFreeBeat
+                          ? 'Yes'
+                          : 'No'}
+                      </span>
+                    </div>
+
+                    <div className="metricRow">
+                      <span className="muted">
+                        Release
+                        Date
+                      </span>
+
+                      <span className="strong">
+                        {dist.releaseDate
+                          ? new Date(
+                              dist.releaseDate
+                            ).toLocaleDateString(
+                              'en-IN'
+                            )
+                          : '—'}
+                      </span>
+                    </div>
+
+                    <div className="metricRow">
+                      <span className="muted">
+                        Artist
+                      </span>
+
+                      <span className="strong">
+                        {
+                          dist.primaryArtist
+                        }
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* INVESTMENTS */}
+            {c?.investments
+              ?.length > 0 && (
+              <div className="section">
+                <div className="sectionTitle">
+                  <Users
+                    size={16}
+                  />
+                  Fan
+                  Investments
+                </div>
+
+                <table className="table">
+                  <thead>
+                    <tr>
+                      <th>
+                        Fan ID
+                      </th>
+                      <th>
+                        Amount
+                      </th>
+                      <th>
+                        Ownership
+                      </th>
+                      <th>
+                        Status
+                      </th>
+                    </tr>
+                  </thead>
+
+                  <tbody>
+                    {c.investments.map(
+                      (
+                        inv: any
+                      ) => (
+                        <tr
+                          key={
+                            inv.id
+                          }
+                        >
+                          <td>
+                            {
+                              inv.fanId
+                            .slice(
+                              0,
+                              8
+                            )
+                            }
+                            …
+                          </td>
+
+                          <td>
+                            <strong>
+                              {formatINR(
+                                inv.amount
+                              )}
+                            </strong>
+                          </td>
+
+                          <td>
+                            {
+                              inv.ownershipPct
+                            .toFixed(
+                              2
+                            )
+                            }
+                            %
+                          </td>
+
+                          <td>
+                            <span className="liveBadge">
+                              {
+                                inv.status
+                              }
+                            </span>
+                          </td>
+                        </tr>
+                      )
+                    )}
                   </tbody>
                 </table>
               </div>
-            </div>
-          )}
+            )}
+          </div>
         </div>
-      </div>
+      </>
     </ArtistLayout>
   )
 }

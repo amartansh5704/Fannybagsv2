@@ -1,17 +1,32 @@
 'use client'
+
 import { useState } from 'react'
-import { Plus, X } from 'lucide-react'
-import { cn } from '@/lib/utils'
+import { Plus, X, Upload, Music2 } from 'lucide-react'
 
 const GENRES = [
-  'Hip-Hop / Rap', 'Indie Pop', 'R&B / Soul', 'Electronic',
-  'Folk / Acoustic', 'Bollywood Pop', 'Punjabi', 'Classical Fusion',
-  'Rock', 'Jazz', 'Devotional', 'Other',
+  'Hip-Hop / Rap',
+  'Indie Pop',
+  'R&B / Soul',
+  'Electronic',
+  'Folk / Acoustic',
+  'Bollywood Pop',
+  'Punjabi',
+  'Classical Fusion',
+  'Rock',
+  'Jazz',
+  'Devotional',
+  'Other',
 ]
 
 const CONTRIBUTOR_ROLES = [
-  'Producer', 'Lyricist', 'Composer', 'Co-Writer',
-  'Arranger', 'Mixing Engineer', 'Mastering Engineer', 'Other',
+  'Producer',
+  'Lyricist',
+  'Composer',
+  'Co-Writer',
+  'Arranger',
+  'Mixing Engineer',
+  'Mastering Engineer',
+  'Other',
 ]
 
 export interface Contributor {
@@ -20,373 +35,966 @@ export interface Contributor {
 }
 
 interface DistributionData {
-  releaseStatus:     'released' | 'unreleased' | ''
+  releaseStatus: 'released' | 'unreleased' | ''
   migrationApproved: boolean
-  releaseName:       string
-  primaryGenre:      string
-  releaseDate:       string
-  explicitLyrics:    boolean
-  coverArtDist:      string
-  primaryArtist:     string
+  releaseName: string
+  primaryGenre: string
+  releaseDate: string
+  explicitLyrics: boolean
+  coverArtDist: string
+  primaryArtist: string
   additionalArtists: string[]
-  songFileUrl:       string
-  hasFreeBeat:       boolean
-  // ── new fields ──
-  spotifyLink:       string
-  appleMusicLink:    string
-  releaseType:       'single' | 'album'
-  contributors:      Contributor[]
+  songFileUrl: string
+  hasFreeBeat: boolean
+  spotifyLink: string
+  appleMusicLink: string
+  releaseType: 'single' | 'album'
+  contributors: Contributor[]
 }
 
 interface Props {
-  data:     DistributionData
+  data: DistributionData
   onChange: (data: DistributionData) => void
 }
 
-export default function DistributionDetail({ data, onChange }: Props) {
-  const [newArtist, setNewArtist]             = useState('')
-  const [newContribName, setNewContribName]   = useState('')
-  const [newContribRole, setNewContribRole]   = useState(CONTRIBUTOR_ROLES[0])
+export default function DistributionDetail({
+  data,
+  onChange,
+}: Props) {
+  const [newArtist, setNewArtist] =
+    useState('')
 
-  const update = (key: keyof DistributionData, val: unknown) =>
-    onChange({ ...data, [key]: val })
+  const [newContribName, setNewContribName] =
+    useState('')
 
-  // ── additional artists ──
+  const [newContribRole, setNewContribRole] =
+    useState(CONTRIBUTOR_ROLES[0])
+
+  const update = (
+    key: keyof DistributionData,
+    val: unknown
+  ) =>
+    onChange({
+      ...data,
+      [key]: val,
+    })
+
   const addArtist = () => {
     if (!newArtist.trim()) return
-    update('additionalArtists', [...data.additionalArtists, newArtist.trim()])
+
+    update('additionalArtists', [
+      ...data.additionalArtists,
+      newArtist.trim(),
+    ])
+
     setNewArtist('')
   }
-  const removeArtist = (idx: number) =>
-    update('additionalArtists', data.additionalArtists.filter((_, i) => i !== idx))
 
-  // ── contributors ──
+  const removeArtist = (idx: number) =>
+    update(
+      'additionalArtists',
+      data.additionalArtists.filter(
+        (_, i) => i !== idx
+      )
+    )
+
   const addContributor = () => {
     if (!newContribName.trim()) return
-    const entry: Contributor = { name: newContribName.trim(), role: newContribRole }
-    update('contributors', [...(data.contributors ?? []), entry])
+
+    const entry: Contributor = {
+      name: newContribName.trim(),
+      role: newContribRole,
+    }
+
+    update('contributors', [
+      ...(data.contributors ?? []),
+      entry,
+    ])
+
     setNewContribName('')
     setNewContribRole(CONTRIBUTOR_ROLES[0])
   }
+
   const removeContributor = (idx: number) =>
-    update('contributors', (data.contributors ?? []).filter((_, i) => i !== idx))
+    update(
+      'contributors',
+      (data.contributors ?? []).filter(
+        (_, i) => i !== idx
+      )
+    )
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h2 className="text-xl font-semibold mb-1">Distribution Details</h2>
-        <p className="text-zinc-500 text-sm">Tell us about your song's release status</p>
-      </div>
+    <>
+      <style jsx>{`
+        .page {
+          color: white;
+          font-family: Inter, sans-serif;
+        }
 
-      {/* ── Release Status ── */}
-      <div className="space-y-2">
-        <label className="text-xs text-zinc-500 uppercase tracking-wider font-medium">
-          Release Status *
-        </label>
-        <div className="grid grid-cols-2 gap-3">
-          {(['released', 'unreleased'] as const).map(status => (
+        .header {
+          margin-bottom: 36px;
+        }
+
+        .title {
+          font-size: 34px;
+          font-weight: 700;
+          margin-bottom: 8px;
+          letter-spacing: -0.04em;
+        }
+
+        .subtitle {
+          color: #71717a;
+          font-size: 15px;
+        }
+
+        .section {
+          background: rgba(255,255,255,0.03);
+          border: 1px solid rgba(255,255,255,0.08);
+          border-radius: 28px;
+          padding: 24px;
+          margin-bottom: 22px;
+          backdrop-filter: blur(20px);
+        }
+
+        .label {
+          display: block;
+          margin-bottom: 12px;
+          color: #71717a;
+          font-size: 11px;
+          letter-spacing: 0.24em;
+          text-transform: uppercase;
+          font-weight: 700;
+        }
+
+        .grid {
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 18px;
+        }
+
+        .field {
+          margin-bottom: 20px;
+        }
+
+        .input,
+        .select {
+          width: 100%;
+          height: 58px;
+          border-radius: 18px;
+          border: 1px solid rgba(255,255,255,0.08);
+          background: rgba(255,255,255,0.03);
+          padding: 0 18px;
+          color: white;
+          outline: none;
+          font-size: 14px;
+          transition: all 0.3s ease;
+          box-sizing: border-box;
+        }
+
+        .input:focus,
+        .select:focus {
+          border-color: rgba(168,85,247,0.45);
+          box-shadow: 0 0 0 4px rgba(168,85,247,0.12);
+        }
+
+        .select option {
+          background: #09090b;
+        }
+
+        .toggleGrid {
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 14px;
+        }
+
+        .toggleBtn {
+          height: 60px;
+          border-radius: 20px;
+          border: 1px solid rgba(255,255,255,0.08);
+          background: rgba(255,255,255,0.03);
+          color: #71717a;
+          cursor: pointer;
+          font-size: 14px;
+          font-weight: 600;
+          transition: all 0.3s ease;
+        }
+
+        .toggleBtn:hover {
+          border-color: rgba(255,255,255,0.18);
+        }
+
+        .activeGreen {
+          background: rgba(16,185,129,0.12);
+          border-color: rgba(16,185,129,0.35);
+          color: #6ee7b7;
+        }
+
+        .activePurple {
+          background: rgba(168,85,247,0.12);
+          border-color: rgba(168,85,247,0.35);
+          color: #d8b4fe;
+        }
+
+        .activePink {
+          background: rgba(236,72,153,0.12);
+          border-color: rgba(236,72,153,0.35);
+          color: #f9a8d4;
+        }
+
+        .warning {
+          background: rgba(245,158,11,0.08);
+          border: 1px solid rgba(245,158,11,0.18);
+          border-radius: 22px;
+          padding: 20px;
+        }
+
+        .warningTitle {
+          color: #fcd34d;
+          font-weight: 600;
+          margin-bottom: 10px;
+        }
+
+        .warningText {
+          color: #71717a;
+          line-height: 1.7;
+          font-size: 14px;
+          margin-bottom: 16px;
+        }
+
+        .checkRow {
+          display: flex;
+          align-items: center;
+          gap: 12px;
+        }
+
+        .uploadBox {
+          border: 1px dashed rgba(168,85,247,0.35);
+          background: rgba(168,85,247,0.05);
+          border-radius: 24px;
+          padding: 38px 20px;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: center;
+          gap: 12px;
+          text-align: center;
+          cursor: pointer;
+          transition: all 0.3s ease;
+        }
+
+        .uploadBox:hover {
+          background: rgba(168,85,247,0.09);
+        }
+
+        .uploadTitle {
+          font-size: 15px;
+          font-weight: 600;
+        }
+
+        .uploadSub {
+          color: #71717a;
+          font-size: 12px;
+        }
+
+        .artistWrap {
+          display: flex;
+          gap: 10px;
+        }
+
+        .addBtn {
+          height: 58px;
+          border: none;
+          padding: 0 18px;
+          border-radius: 18px;
+          background: linear-gradient(
+            135deg,
+            #ec4899,
+            #8b5cf6
+          );
+          color: white;
+          font-weight: 600;
+          cursor: pointer;
+          display: flex;
+          align-items: center;
+          gap: 8px;
+        }
+
+        .tags {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 10px;
+          margin-top: 14px;
+        }
+
+        .tag {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          background: rgba(255,255,255,0.05);
+          border: 1px solid rgba(255,255,255,0.08);
+          border-radius: 999px;
+          padding: 10px 14px;
+          font-size: 13px;
+        }
+
+        .remove {
+          background: transparent;
+          border: none;
+          color: #71717a;
+          cursor: pointer;
+        }
+
+        .contributors {
+          display: flex;
+          flex-direction: column;
+          gap: 12px;
+          margin-top: 18px;
+        }
+
+        .contributor {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          background: rgba(255,255,255,0.04);
+          border: 1px solid rgba(255,255,255,0.08);
+          border-radius: 18px;
+          padding: 16px;
+        }
+
+        .contributorName {
+          font-size: 14px;
+          font-weight: 600;
+        }
+
+        .contributorRole {
+          color: #71717a;
+          font-size: 12px;
+          margin-top: 4px;
+        }
+
+        .uploadedCard {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          background: rgba(34,197,94,0.08);
+          border: 1px solid rgba(34,197,94,0.18);
+          border-radius: 22px;
+          padding: 18px;
+        }
+
+        .uploadedLeft {
+          display: flex;
+          align-items: center;
+          gap: 14px;
+        }
+
+        .uploadedIcon {
+          width: 46px;
+          height: 46px;
+          border-radius: 14px;
+          background: rgba(34,197,94,0.12);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          color: #4ade80;
+        }
+
+        .uploadedName {
+          font-size: 14px;
+          font-weight: 600;
+          max-width: 500px;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          white-space: nowrap;
+        }
+
+        .uploadedSub {
+          margin-top: 4px;
+          color: #71717a;
+          font-size: 12px;
+        }
+
+        .removeBtn {
+          background: transparent;
+          border: none;
+          color: #71717a;
+          cursor: pointer;
+        }
+
+        @media (max-width: 900px) {
+          .grid {
+            grid-template-columns: 1fr;
+          }
+
+          .toggleGrid {
+            grid-template-columns: 1fr;
+          }
+
+          .artistWrap {
+            flex-direction: column;
+          }
+        }
+      `}</style>
+
+      <div className="page">
+        <div className="header">
+          <div className="title">
+            Distribution Details
+          </div>
+
+          <div className="subtitle">
+            Tell us about your release and
+            streaming setup.
+          </div>
+        </div>
+
+        {/* RELEASE STATUS */}
+        <div className="section">
+          <label className="label">
+            Release Status *
+          </label>
+
+          <div className="toggleGrid">
             <button
-              key={status}
-              onClick={() => update('releaseStatus', status)}
-              className={cn(
-                'py-3 rounded-xl border text-sm font-medium capitalize transition-all',
-                data.releaseStatus === status
-                  ? status === 'released'
-                    ? 'bg-emerald-500/15 border-emerald-500/50 text-emerald-300'
-                    : 'bg-purple-500/15 border-purple-500/50 text-purple-300'
-                  : 'bg-white/5 border-white/10 text-zinc-500 hover:border-white/20'
-              )}
+              type="button"
+              onClick={() =>
+                update('releaseStatus', 'released')
+              }
+              className={`toggleBtn ${
+                data.releaseStatus ===
+                'released'
+                  ? 'activeGreen'
+                  : ''
+              }`}
             >
-              {status === 'released' ? '🎵 Already Released' : '🚀 Unreleased'}
+              🎵 Already Released
             </button>
-          ))}
-        </div>
-      </div>
 
-      {/* ── Release Type (Single / Album) — shown once status is picked ── */}
-      {data.releaseStatus && (
-        <div className="space-y-2">
-          <label className="text-xs text-zinc-500 uppercase tracking-wider font-medium">
-            Release Type *
-          </label>
-          <div className="grid grid-cols-2 gap-3">
-            {(['single', 'album'] as const).map(type => (
-              <button
-                key={type}
-                onClick={() => update('releaseType', type)}
-                className={cn(
-                  'py-3 rounded-xl border text-sm font-medium capitalize transition-all',
-                  data.releaseType === type
-                    ? 'bg-pink-500/15 border-pink-500/50 text-pink-300'
-                    : 'bg-white/5 border-white/10 text-zinc-500 hover:border-white/20'
-                )}
-              >
-                {type === 'single' ? '🎤 Single Track' : '💿 Album / EP'}
-              </button>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* ── Released branch ── */}
-      {data.releaseStatus === 'released' && (
-        <div className="bg-amber-500/5 border border-amber-500/20 rounded-xl p-4 space-y-3">
-          <p className="text-sm text-amber-300 font-medium">⚠️ Migration Approval Required</p>
-          <p className="text-xs text-zinc-500 leading-relaxed">
-            If your song is already distributed elsewhere, FannyBags needs approval to migrate revenue
-            reporting. Check this box to confirm you authorize FannyBags to manage revenue for this song.
-          </p>
-          <label className="flex items-center gap-3 cursor-pointer">
-            <input
-              type="checkbox"
-              checked={data.migrationApproved}
-              onChange={e => update('migrationApproved', e.target.checked)}
-              className="w-4 h-4 accent-amber-500"
-            />
-            <span className="text-sm text-zinc-300">
-              I authorize FannyBags to migrate revenue management for this song
-            </span>
-          </label>
-        </div>
-      )}
-
-      {/* ── Unreleased branch ── */}
-      {data.releaseStatus === 'unreleased' && (
-        <div className="grid grid-cols-2 gap-4">
-          <div className="space-y-1.5">
-            <label className="text-xs text-zinc-500 uppercase tracking-wider font-medium">
-              Release Name *
-            </label>
-            <input
-              type="text"
-              value={data.releaseName}
-              onChange={e => update('releaseName', e.target.value)}
-              placeholder="Album or single name"
-              className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm outline-none focus:border-purple-500/60 transition-all placeholder:text-zinc-600"
-            />
-          </div>
-          <div className="space-y-1.5">
-            <label className="text-xs text-zinc-500 uppercase tracking-wider font-medium">
-              Primary Genre *
-            </label>
-            <select
-              value={data.primaryGenre}
-              onChange={e => update('primaryGenre', e.target.value)}
-              className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm outline-none focus:border-purple-500/60 transition-all text-white"
+            <button
+              type="button"
+              onClick={() =>
+                update(
+                  'releaseStatus',
+                  'unreleased'
+                )
+              }
+              className={`toggleBtn ${
+                data.releaseStatus ===
+                'unreleased'
+                  ? 'activePurple'
+                  : ''
+              }`}
             >
-              <option value="" className="bg-zinc-900">Select genre</option>
-              {GENRES.map(g => (
-                <option key={g} value={g} className="bg-zinc-900">{g}</option>
-              ))}
-            </select>
-          </div>
-          <div className="space-y-1.5">
-            <label className="text-xs text-zinc-500 uppercase tracking-wider font-medium">
-              Release Date *
-            </label>
-            <input
-              type="date"
-              value={data.releaseDate}
-              onChange={e => update('releaseDate', e.target.value)}
-              className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm outline-none focus:border-purple-500/60 transition-all [color-scheme:dark]"
-            />
-          </div>
-          <div className="space-y-1.5 flex flex-col justify-end">
-            <label className="flex items-center gap-3 py-3 cursor-pointer">
-              <input
-                type="checkbox"
-                checked={data.explicitLyrics}
-                onChange={e => update('explicitLyrics', e.target.checked)}
-                className="w-4 h-4 accent-purple-500"
-              />
-              <span className="text-sm text-zinc-300">Explicit Lyrics</span>
-              <span className="text-xs bg-red-500/20 text-red-400 border border-red-500/30 px-2 py-0.5 rounded-full">
-                E
-              </span>
-            </label>
+              🚀 Unreleased
+            </button>
           </div>
         </div>
-      )}
 
-      {/* ── Common fields — shown once a status is picked ── */}
-      {data.releaseStatus && (
-        <>
-          {/* Primary Artist + Additional Artists */}
-          <div className="space-y-3">
-            <label className="text-xs text-zinc-500 uppercase tracking-wider font-medium">
-              Primary Artist Name *
+        {/* RELEASE TYPE */}
+        {data.releaseStatus && (
+          <div className="section">
+            <label className="label">
+              Release Type *
             </label>
-            <input
-              type="text"
-              value={data.primaryArtist}
-              onChange={e => update('primaryArtist', e.target.value)}
-              placeholder="Your artist name"
-              className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm outline-none focus:border-purple-500/60 transition-all placeholder:text-zinc-600"
-            />
-            <div className="flex gap-2">
-              <input
-                type="text"
-                value={newArtist}
-                onChange={e => setNewArtist(e.target.value)}
-                onKeyDown={e => e.key === 'Enter' && addArtist()}
-                placeholder="Add featured artist..."
-                className="flex-1 bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-purple-500/60 transition-all placeholder:text-zinc-600"
-              />
+
+            <div className="toggleGrid">
               <button
-                onClick={addArtist}
-                className="flex items-center gap-1 px-4 py-2.5 bg-purple-500/15 border border-purple-500/30 text-purple-300 rounded-xl text-sm hover:bg-purple-500/25 transition-all"
+                type="button"
+                onClick={() =>
+                  update('releaseType', 'single')
+                }
+                className={`toggleBtn ${
+                  data.releaseType ===
+                  'single'
+                    ? 'activePink'
+                    : ''
+                }`}
               >
-                <Plus size={14} /> Add
+                🎤 Single Track
+              </button>
+
+              <button
+                type="button"
+                onClick={() =>
+                  update('releaseType', 'album')
+                }
+                className={`toggleBtn ${
+                  data.releaseType ===
+                  'album'
+                    ? 'activePink'
+                    : ''
+                }`}
+              >
+                💿 Album / EP
               </button>
             </div>
-            {data.additionalArtists.length > 0 && (
-              <div className="flex flex-wrap gap-2">
-                {data.additionalArtists.map((a, i) => (
-                  <span
-                    key={i}
-                    className="flex items-center gap-1.5 bg-white/5 border border-white/10 text-sm text-zinc-300 px-3 py-1 rounded-full"
-                  >
-                    {a}
-                    <button
-                      onClick={() => removeArtist(i)}
-                      className="text-zinc-600 hover:text-red-400"
-                    >
-                      <X size={12} />
-                    </button>
-                  </span>
-                ))}
-              </div>
-            )}
           </div>
+        )}
 
-          {/* Song File + Free Beat */}
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-1.5">
-              <label className="text-xs text-zinc-500 uppercase tracking-wider font-medium">
-                Song File (WAV/FLAC)
-              </label>
-              <label className="flex items-center gap-2 border border-dashed border-white/15 rounded-xl px-4 py-3 cursor-pointer hover:bg-white/3 transition-all">
-                <span className="text-zinc-500 text-sm truncate">
-                  {data.songFileUrl || 'Upload final song file'}
-                </span>
-                <input
-                  type="file"
-                  accept="audio/*"
-                  className="hidden"
-                  onChange={e => update('songFileUrl', e.target.files?.[0]?.name || '')}
-                />
-              </label>
-            </div>
-            <div className="space-y-1.5 flex flex-col justify-end">
-              <label className="flex items-center gap-3 py-3 cursor-pointer">
+        {/* RELEASED */}
+        {data.releaseStatus ===
+          'released' && (
+          <div className="section">
+            <div className="warning">
+              <div className="warningTitle">
+                ⚠ Migration Approval Required
+              </div>
+
+              <div className="warningText">
+                Allow FANNYBAGS to manage
+                royalty reporting and migration
+                for your existing release.
+              </div>
+
+              <label className="checkRow">
                 <input
                   type="checkbox"
-                  checked={data.hasFreeBeat}
-                  onChange={e => update('hasFreeBeat', e.target.checked)}
-                  className="w-4 h-4 accent-purple-500"
+                  checked={data.migrationApproved}
+                  onChange={e =>
+                    update(
+                      'migrationApproved',
+                      e.target.checked
+                    )
+                  }
                 />
-                <div>
-                  <span className="text-sm text-zinc-300">Free Beat / Sample</span>
-                  <p className="text-xs text-zinc-600">Check if beat is royalty-free</p>
-                </div>
+
+                <span>
+                  I approve migration
+                  management
+                </span>
               </label>
             </div>
-          </div>
 
-          {/* ── Streaming Profile Links ── */}
-          <div className="space-y-3">
-            <label className="text-xs text-zinc-500 uppercase tracking-wider font-medium">
-              Streaming Profile Links
-            </label>
-            <div className="grid grid-cols-1 gap-3">
-              <div className="relative">
-                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs text-emerald-500 font-semibold pointer-events-none">
-                  SP
-                </span>
-                <input
-                  type="url"
-                  value={data.spotifyLink}
-                  onChange={e => update('spotifyLink', e.target.value)}
-                  placeholder="https://open.spotify.com/artist/..."
-                  className="w-full bg-white/5 border border-white/10 rounded-xl pl-10 pr-4 py-3 text-sm outline-none focus:border-emerald-500/60 transition-all placeholder:text-zinc-600"
-                />
-              </div>
-              <div className="relative">
-                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs text-pink-500 font-semibold pointer-events-none">
-                  AM
-                </span>
-                <input
-                  type="url"
-                  value={data.appleMusicLink}
-                  onChange={e => update('appleMusicLink', e.target.value)}
-                  placeholder="https://music.apple.com/artist/..."
-                  className="w-full bg-white/5 border border-white/10 rounded-xl pl-10 pr-4 py-3 text-sm outline-none focus:border-pink-500/60 transition-all placeholder:text-zinc-600"
-                />
-              </div>
-            </div>
-          </div>
+            <div
+              className="field"
+              style={{ marginTop: 20 }}
+            >
+              <label className="label">
+                Existing Song Link *
+              </label>
 
-          {/* ── Contributors ── */}
-          <div className="bg-white/3 border border-white/8 rounded-xl p-4 space-y-4">
-            <div>
-              <p className="text-sm text-zinc-400 font-medium">Add Contributors</p>
-              <p className="text-xs text-zinc-600 mt-0.5">
-                Producers, lyricists, composers who need revenue credit
-              </p>
-            </div>
-
-            {/* Input row */}
-            <div className="flex gap-2">
               <input
-                type="text"
-                value={newContribName}
-                onChange={e => setNewContribName(e.target.value)}
-                onKeyDown={e => e.key === 'Enter' && addContributor()}
-                placeholder="Contributor name"
-                className="flex-1 bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-purple-500/60 transition-all placeholder:text-zinc-600"
+                type="url"
+                value={data.spotifyLink}
+                onChange={e =>
+                  update(
+                    'spotifyLink',
+                    e.target.value
+                  )
+                }
+                placeholder="Spotify / Apple Music / YouTube"
+                className="input"
               />
-              <select
-                value={newContribRole}
-                onChange={e => setNewContribRole(e.target.value)}
-                className="bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 text-sm outline-none focus:border-purple-500/60 transition-all text-zinc-300"
-              >
-                {CONTRIBUTOR_ROLES.map(r => (
-                  <option key={r} value={r} className="bg-zinc-900">{r}</option>
-                ))}
-              </select>
-              <button
-                onClick={addContributor}
-                className="flex items-center gap-1 px-4 py-2.5 bg-purple-500/15 border border-purple-500/30 text-purple-300 rounded-xl text-sm hover:bg-purple-500/25 transition-all whitespace-nowrap"
-              >
-                <Plus size={14} /> Add
-              </button>
+            </div>
+          </div>
+        )}
+
+        {/* UNRELEASED */}
+        {data.releaseStatus ===
+          'unreleased' && (
+          <div className="section">
+            <div className="grid">
+              <div className="field">
+                <label className="label">
+                  Release Name *
+                </label>
+
+                <input
+                  type="text"
+                  value={data.releaseName}
+                  onChange={e =>
+                    update(
+                      'releaseName',
+                      e.target.value
+                    )
+                  }
+                  placeholder="Album or single name"
+                  className="input"
+                />
+              </div>
+
+              <div className="field">
+                <label className="label">
+                  Primary Genre *
+                </label>
+
+                <select
+                  value={data.primaryGenre}
+                  onChange={e =>
+                    update(
+                      'primaryGenre',
+                      e.target.value
+                    )
+                  }
+                  className="select"
+                >
+                  <option value="">
+                    Select genre
+                  </option>
+
+                  {GENRES.map(g => (
+                    <option
+                      key={g}
+                      value={g}
+                    >
+                      {g}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="field">
+                <label className="label">
+                  Release Date *
+                </label>
+
+                <input
+                  type="date"
+                  value={data.releaseDate}
+                  onChange={e =>
+                    update(
+                      'releaseDate',
+                      e.target.value
+                    )
+                  }
+                  className="input"
+                />
+              </div>
+
+              <div className="field">
+                <label className="label">
+                  Explicit Lyrics
+                </label>
+
+                <label className="checkRow">
+                  <input
+                    type="checkbox"
+                    checked={
+                      data.explicitLyrics
+                    }
+                    onChange={e =>
+                      update(
+                        'explicitLyrics',
+                        e.target.checked
+                      )
+                    }
+                  />
+
+                  <span>
+                    Contains explicit content
+                  </span>
+                </label>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* COMMON */}
+        {data.releaseStatus && (
+          <>
+            {/* ARTISTS */}
+            <div className="section">
+              <div className="field">
+                <label className="label">
+                  Primary Artist *
+                </label>
+
+                <input
+                  type="text"
+                  value={data.primaryArtist}
+                  onChange={e =>
+                    update(
+                      'primaryArtist',
+                      e.target.value
+                    )
+                  }
+                  placeholder="Artist name"
+                  className="input"
+                />
+              </div>
+
+              <div className="field">
+                <label className="label">
+                  Featured Artists
+                </label>
+
+                <div className="artistWrap">
+                  <input
+                    type="text"
+                    value={newArtist}
+                    onChange={e =>
+                      setNewArtist(
+                        e.target.value
+                      )
+                    }
+                    placeholder="Add featured artist..."
+                    className="input"
+                  />
+
+                  <button
+                    type="button"
+                    onClick={addArtist}
+                    className="addBtn"
+                  >
+                    <Plus size={16} />
+                    Add
+                  </button>
+                </div>
+
+                {data.additionalArtists
+                  .length > 0 && (
+                  <div className="tags">
+                    {data.additionalArtists.map(
+                      (a, i) => (
+                        <div
+                          key={i}
+                          className="tag"
+                        >
+                          {a}
+
+                          <button
+                            type="button"
+                            className="remove"
+                            onClick={() =>
+                              removeArtist(i)
+                            }
+                          >
+                            <X size={12} />
+                          </button>
+                        </div>
+                      )
+                    )}
+                  </div>
+                )}
+              </div>
             </div>
 
-            {/* Contributors list */}
-            {(data.contributors ?? []).length > 0 && (
-              <div className="space-y-2">
-                {(data.contributors ?? []).map((c, i) => (
-                  <div
-                    key={i}
-                    className="flex items-center justify-between bg-white/5 border border-white/8 rounded-xl px-4 py-2.5"
-                  >
-                    <div>
-                      <p className="text-sm text-zinc-200 font-medium">{c.name}</p>
-                      <p className="text-xs text-zinc-500">{c.role}</p>
+            {/* SONG UPLOAD */}
+            <div className="section">
+              <div className="field">
+                <label className="label">
+                  {data.releaseType ===
+                  'album'
+                    ? 'Album / EP Upload'
+                    : 'Song Upload'}
+                </label>
+
+                {data.songFileUrl ? (
+                  <div className="uploadedCard">
+                    <div className="uploadedLeft">
+                      <div className="uploadedIcon">
+                        <Music2 size={18} />
+                      </div>
+
+                      <div>
+                        <div className="uploadedName">
+                          {data.songFileUrl}
+                        </div>
+
+                        <div className="uploadedSub">
+                          Upload completed
+                          successfully
+                        </div>
+                      </div>
                     </div>
+
                     <button
-                      onClick={() => removeContributor(i)}
-                      className="text-zinc-600 hover:text-red-400 transition-colors"
+                      type="button"
+                      className="removeBtn"
+                      onClick={() =>
+                        update(
+                          'songFileUrl',
+                          ''
+                        )
+                      }
                     >
-                      <X size={14} />
+                      <X size={16} />
                     </button>
                   </div>
-                ))}
+                ) : (
+                  <label className="uploadBox">
+                    <Upload size={30} />
+
+                    <div className="uploadTitle">
+                      {data.releaseType ===
+                      'album'
+                        ? 'Upload Album / EP Files'
+                        : 'Upload Song File'}
+                    </div>
+
+                    <div className="uploadSub">
+                      {data.releaseType ===
+                      'album'
+                        ? 'Select multiple audio tracks'
+                        : 'WAV, FLAC, MP3 supported'}
+                    </div>
+
+                    <input
+                      type="file"
+                      multiple={
+                        data.releaseType ===
+                        'album'
+                      }
+                      accept="audio/*"
+                      onChange={(e) => {
+                        const files =
+                          e.target.files
+
+                        if (
+                          !files?.length
+                        )
+                          return
+
+                        if (
+                          data.releaseType ===
+                          'album'
+                        ) {
+                          const names =
+                            Array.from(
+                              files
+                            )
+                              .map(
+                                (f) =>
+                                  f.name
+                              )
+                              .join(', ')
+
+                          update(
+                            'songFileUrl',
+                            `${files.length} Tracks Selected • ${names}`
+                          )
+                        } else {
+                          update(
+                            'songFileUrl',
+                            files[0]
+                              .name
+                          )
+                        }
+                      }}
+                      style={{
+                        display: 'none',
+                      }}
+                    />
+                  </label>
+                )}
               </div>
-            )}
-          </div>
-        </>
-      )}
-    </div>
+
+              <div
+                className="field"
+                style={{ marginTop: 20 }}
+              >
+                <label className="label">
+                  Free Beat / Sample
+                </label>
+
+                <label className="checkRow">
+                  <input
+                    type="checkbox"
+                    checked={
+                      data.hasFreeBeat
+                    }
+                    onChange={(e) =>
+                      update(
+                        'hasFreeBeat',
+                        e.target.checked
+                      )
+                    }
+                  />
+
+                  <span>
+                    Beat is royalty-free
+                  </span>
+                </label>
+              </div>
+            </div>
+
+            {/* CONTRIBUTORS */}
+            <div className="section">
+              <label className="label">
+                Contributors
+              </label>
+
+              <div className="artistWrap">
+                <input
+                  type="text"
+                  value={newContribName}
+                  onChange={e =>
+                    setNewContribName(
+                      e.target.value
+                    )
+                  }
+                  placeholder="Contributor name"
+                  className="input"
+                />
+
+                <select
+                  value={newContribRole}
+                  onChange={e =>
+                    setNewContribRole(
+                      e.target.value
+                    )
+                  }
+                  className="select"
+                >
+                  {CONTRIBUTOR_ROLES.map(
+                    r => (
+                      <option
+                        key={r}
+                        value={r}
+                      >
+                        {r}
+                      </option>
+                    )
+                  )}
+                </select>
+
+                <button
+                  type="button"
+                  onClick={addContributor}
+                  className="addBtn"
+                >
+                  <Plus size={16} />
+                  Add
+                </button>
+              </div>
+
+              {(data.contributors ?? [])
+                .length > 0 && (
+                <div className="contributors">
+                  {(
+                    data.contributors ?? []
+                  ).map((c, i) => (
+                    <div
+                      key={i}
+                      className="contributor"
+                    >
+                      <div>
+                        <div className="contributorName">
+                          {c.name}
+                        </div>
+
+                        <div className="contributorRole">
+                          {c.role}
+                        </div>
+                      </div>
+
+                      <button
+                        type="button"
+                        className="remove"
+                        onClick={() =>
+                          removeContributor(i)
+                        }
+                      >
+                        <X size={14} />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </>
+        )}
+      </div>
+    </>
   )
 }
