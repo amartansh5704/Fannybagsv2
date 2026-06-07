@@ -5,11 +5,11 @@ import { getAuthenticatedUser } from '@/lib/auth-helpers'
 export async function GET() {
   try {
     const user = await getAuthenticatedUser()
-    if (!user)               return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 })
+    if (!user) return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 })
     if (user.role !== 'artist') return NextResponse.json({ success: false, error: 'Forbidden' }, { status: 403 })
 
     const songs = await prisma.song.findMany({
-      where: { artistId: user.id },            // ← real session ID
+      where: { artistId: user.id },
       include: { campaign: true, distribution: true, metrics: true },
       orderBy: { createdAt: 'desc' },
     })
@@ -24,7 +24,7 @@ export async function GET() {
 export async function POST(req: NextRequest) {
   try {
     const user = await getAuthenticatedUser()
-    if (!user)               return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 })
+    if (!user) return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 })
     if (user.role !== 'artist') return NextResponse.json({ success: false, error: 'Forbidden' }, { status: 403 })
 
     const body = await req.json()
@@ -49,7 +49,7 @@ export async function POST(req: NextRequest) {
         { status: 400 }
       )
     }
-    const endDate  = new Date(songDetail.campaignEndDate)
+    const endDate = new Date(songDetail.campaignEndDate)
     const diffDays = Math.ceil((endDate.getTime() - Date.now()) / 86_400_000)
     if (diffDays < 1 || diffDays > 90) {
       return NextResponse.json(
@@ -58,15 +58,18 @@ export async function POST(req: NextRequest) {
       )
     }
 
+    // Use distribution cover art as fallback if song cover art is empty
+    const coverArtUrl = songDetail.coverArtUrl || distribution.coverArtDist || null
+
     const song = await prisma.song.create({
       data: {
-        artistId:    user.id,              // ← real session ID
+        artistId:    user.id,
         title:       songDetail.title.trim(),
-        language:    songDetail.language   ?? '',
+        language:    songDetail.language ?? '',
         genre:       distribution.primaryGenre ?? null,
         description: funding.campaignStory ?? null,
-        demoUrl:     songDetail.demoUrl    ?? null,
-        coverArtUrl: songDetail.coverArtUrl ?? null,
+        demoUrl:     songDetail.demoUrl ?? null,
+        coverArtUrl: coverArtUrl,
         status:      'pending_approval',
       },
     })
@@ -74,34 +77,40 @@ export async function POST(req: NextRequest) {
     await prisma.distribution.create({
       data: {
         songId:            song.id,
-        releaseStatus:     distribution.releaseStatus     ?? 'unreleased',
-        releaseName:       distribution.releaseName       ?? null,
-        primaryGenre:      distribution.primaryGenre      ?? null,
+        releaseStatus:     distribution.releaseStatus ?? 'unreleased',
+        releaseName:       distribution.releaseName ?? null,
+        primaryGenre:      distribution.primaryGenre ?? null,
         releaseDate:       distribution.releaseDate ? new Date(distribution.releaseDate) : null,
-        explicitLyrics:    distribution.explicitLyrics    ?? false,
-        primaryArtist:     distribution.primaryArtist     ?? null,
+        explicitLyrics:    distribution.explicitLyrics ?? false,
+        primaryArtist:     distribution.primaryArtist ?? null,
         additionalArtists: distribution.additionalArtists ?? [],
-        songFileUrl:       distribution.songFileUrl       ?? null,
-        hasFreeBeat:       distribution.hasFreeBeat       ?? false,
+        songFileUrl:       distribution.songFileUrl ?? null,
+        hasFreeBeat:       distribution.hasFreeBeat ?? false,
         migrationApproved: distribution.migrationApproved ?? false,
+        spotifyLink:       distribution.spotifyLink ?? null,
+        appleMusicLink:    distribution.appleMusicLink ?? null,
+        releaseType:       distribution.releaseType ?? 'single',
+        contributors:      (distribution.contributors ?? [])
+          .filter((c: any) => typeof c?.name === 'string' && typeof c?.role === 'string')
+          .map((c: any) => ({ name: c.name.trim(), role: c.role.trim() })),
       },
     })
 
     await prisma.campaign.create({
       data: {
         songId:           song.id,
-        artistId:         user.id,         // ← real session ID
+        artistId:         user.id,
         totalFundingAsk:  funding.totalFundingAsk,
         fanRevenueShare:  fanShare,
         campaignEndDate:  endDate,
         royaltySharingOn: funding.royaltySharingOn ?? true,
-        campaignStory:    funding.campaignStory     ?? null,
+        campaignStory:    funding.campaignStory ?? null,
         minInvestment:    100,
         budgetProduction: funding.budget?.production ?? 0,
-        budgetMixMaster:  funding.budget?.mixMaster  ?? 0,
+        budgetMixMaster:  funding.budget?.mixMaster ?? 0,
         budgetVideoPromo: funding.budget?.videoPromo ?? 0,
-        budgetMarketing:  funding.budget?.marketing  ?? 0,
-        budgetOther:      funding.budget?.other       ?? 0,
+        budgetMarketing:  funding.budget?.marketing ?? 0,
+        budgetOther:      funding.budget?.other ?? 0,
         status:           'pending_approval',
       },
     })

@@ -14,6 +14,8 @@ import {
   ChevronRight,
   Shield,
   LogOut,
+  Wallet,
+  ArrowUpRight,
 } from 'lucide-react'
 import { signOut } from 'next-auth/react'
 
@@ -25,6 +27,9 @@ const navItems = [
   { icon: Briefcase,       label: 'Khapeetars',    href: '/admin/khapeetars' },
   { icon: TrendingUp,      label: 'Investments',   href: '/admin/investments' },
   { icon: Shield,          label: 'Deals',         href: '/admin/deals' },
+  { icon: Music,           label: 'Campaigns',     href: '/admin/campaigns' },  // ← ADD THIS LINE
+  { icon: Wallet, label: 'Deposits', href: '/admin/deposits' },
+  { icon: ArrowUpRight, label: 'Withdrawals', href: '/admin/withdrawals' },
 ]
 
 interface Props {

@@ -1,7 +1,7 @@
 'use client'
 
-import { useRef } from 'react'
-import { Upload, X, Music, Image as ImageIcon } from 'lucide-react'
+import { useRef, useState } from 'react'
+import { Upload, X, Music, Image as ImageIcon, Loader2 } from 'lucide-react'
 
 interface SongDetailData {
   title: string
@@ -24,40 +24,83 @@ const LANGUAGES = [
 ]
 
 export default function SongDetail({ data, onChange }: Props) {
-  const demoInputRef    = useRef<HTMLInputElement>(null)
-  const coverInputRef   = useRef<HTMLInputElement>(null)
+  const demoInputRef  = useRef<HTMLInputElement>(null)
+  const coverInputRef = useRef<HTMLInputElement>(null)
+
+  const [demoUploading, setDemoUploading]   = useState(false)
+  const [demoError,     setDemoError]       = useState('')
+  const [coverUploading, setCoverUploading] = useState(false)
+  const [coverError,     setCoverError]     = useState('')
 
   const update = (key: keyof SongDetailData, val: unknown) =>
     onChange({ ...data, [key]: val })
 
-  // ── DEMO UPLOAD ──────────────────────────────────────────────
-  const handleDemoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  // ── DEMO — uploads immediately to Cloudinary ─────────────────────────
+  const handleDemoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (!file) return
+    e.target.value = ''
+
     if (file.size > 100 * 1024 * 1024) {
-      alert('Demo must be under 100MB')
+      setDemoError('Demo must be under 100MB')
       return
     }
-    onChange({ ...data, demoFile: file, demoUrl: file.name })
-    // reset so same file can be re-selected if removed
-    e.target.value = ''
+
+    setDemoUploading(true)
+    setDemoError('')
+
+    try {
+      const formData = new FormData()
+      formData.append('file', file)
+
+      const res  = await fetch('/api/upload', { method: 'POST', body: formData })
+      const json = await res.json()
+
+      if (!json.success) throw new Error(json.error || 'Upload failed')
+
+      // json.url is now a real Cloudinary URL
+      onChange({ ...data, demoFile: file, demoUrl: json.url })
+    } catch (err: unknown) {
+      setDemoError(err instanceof Error ? err.message : 'Upload failed')
+    } finally {
+      setDemoUploading(false)
+    }
   }
 
   const removeDemo = () => {
+    setDemoError('')
     onChange({ ...data, demoFile: null, demoUrl: '' })
   }
 
-  // ── COVER UPLOAD ─────────────────────────────────────────────
-  const handleCoverUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  // ── COVER — uploads immediately to Cloudinary ─────────────────────────
+  const handleCoverUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (!file) return
-    const url = URL.createObjectURL(file)
-    onChange({ ...data, coverArtFile: file, coverArtUrl: url })
     e.target.value = ''
+
+    setCoverUploading(true)
+    setCoverError('')
+
+    try {
+      const formData = new FormData()
+      formData.append('file', file)
+
+      const res  = await fetch('/api/upload', { method: 'POST', body: formData })
+      const json = await res.json()
+
+      if (!json.success) throw new Error(json.error || 'Upload failed')
+
+      // json.url is now a real Cloudinary URL
+      onChange({ ...data, coverArtFile: file, coverArtUrl: json.url })
+    } catch (err: unknown) {
+      setCoverError(err instanceof Error ? err.message : 'Upload failed')
+    } finally {
+      setCoverUploading(false)
+    }
   }
 
   const removeCover = () => {
-    if (data.coverArtUrl) URL.revokeObjectURL(data.coverArtUrl)
+    setCoverError('')
     onChange({ ...data, coverArtFile: null, coverArtUrl: '' })
   }
 
@@ -74,16 +117,13 @@ export default function SongDetail({ data, onChange }: Props) {
         .sd-title { font-family: 'Syne', sans-serif; font-size: 22px; font-weight: 800; color: #fff; letter-spacing: -0.5px; margin-bottom: 4px; }
         .sd-sub { font-size: 13px; color: #333; font-weight: 300; margin-bottom: 32px; }
 
-        /* GRID */
         .sd-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 0; }
         .sd-full { grid-column: span 2; }
 
-        /* FIELD */
         .sd-field { margin-bottom: 20px; }
         .sd-label { display: block; font-size: 10px; text-transform: uppercase; letter-spacing: 1.5px; color: #2a2a3a; font-weight: 500; margin-bottom: 8px; }
         .sd-req { color: #7c3aed; margin-left: 2px; }
 
-        /* INPUTS */
         .sd-input, .sd-select {
           width: 100%; height: 48px;
           background: rgba(255,255,255,0.04);
@@ -105,11 +145,8 @@ export default function SongDetail({ data, onChange }: Props) {
         }
         .sd-select { appearance: none; cursor: pointer; }
         .sd-select option { background: #111120; color: #e0e0f0; }
-
-        /* DATE input color fix */
         .sd-input[type="date"]::-webkit-calendar-picker-indicator { filter: invert(0.3); cursor: pointer; }
 
-        /* UPLOAD ZONES */
         .sd-upload-zone {
           border: 1px dashed rgba(124,58,237,0.3);
           background: rgba(124,58,237,0.03);
@@ -146,7 +183,34 @@ export default function SongDetail({ data, onChange }: Props) {
           color: #9f7aea;
         }
 
-        /* UPLOADED STATES */
+        .sd-uploading-zone {
+          border: 1px dashed rgba(124,58,237,0.3);
+          background: rgba(124,58,237,0.03);
+          border-radius: 14px;
+          padding: 32px 20px;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          gap: 10px;
+          text-align: center;
+        }
+        .sd-uploading-text { font-size: 13px; color: #9f7aea; }
+
+        .sd-error-box {
+          margin-top: 8px;
+          padding: 10px 14px;
+          background: rgba(239,68,68,0.08);
+          border: 0.5px solid rgba(239,68,68,0.2);
+          border-radius: 10px;
+          font-size: 12px;
+          color: #f87171;
+        }
+
+        @keyframes sd-spin {
+          to { transform: rotate(360deg); }
+        }
+        .sd-spin { animation: sd-spin 1s linear infinite; color: #7c3aed; }
+
         .sd-demo-card {
           display: flex;
           align-items: center;
@@ -186,8 +250,8 @@ export default function SongDetail({ data, onChange }: Props) {
         .sd-cover-img { width: 72px; height: 72px; object-fit: cover; border-radius: 10px; flex-shrink: 0; border: 0.5px solid rgba(255,255,255,0.07); }
         .sd-cover-info { flex: 1; min-width: 0; }
         .sd-cover-name { font-size: 13px; font-weight: 500; color: #fff; margin-bottom: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-        .sd-cover-status { font-size: 11px; color: #555; margin-bottom: 8px; }
-        .sd-cover-remove { background: none; border: none; color: #7f1d1d; font-size: 11.5px; color: #f87171; cursor: pointer; font-family: inherit; padding: 0; transition: color 0.15s; }
+        .sd-cover-status { font-size: 11px; color: #34d399; margin-bottom: 8px; }
+        .sd-cover-remove { background: none; border: none; font-size: 11.5px; color: #f87171; cursor: pointer; font-family: inherit; padding: 0; transition: color 0.15s; }
         .sd-cover-remove:hover { color: #fca5a5; }
 
         @media (max-width: 640px) {
@@ -197,7 +261,6 @@ export default function SongDetail({ data, onChange }: Props) {
         }
       `}</style>
 
-      {/* Hidden file inputs — NOT inside labels, triggered via ref */}
       <input
         ref={demoInputRef}
         type="file"
@@ -218,8 +281,6 @@ export default function SongDetail({ data, onChange }: Props) {
         <div className="sd-sub">Basic information about your song</div>
 
         <div className="sd-grid">
-
-          {/* TITLE */}
           <div className="sd-field sd-full">
             <label className="sd-label">Song Title <span className="sd-req">*</span></label>
             <input
@@ -231,7 +292,6 @@ export default function SongDetail({ data, onChange }: Props) {
             />
           </div>
 
-          {/* LANGUAGE */}
           <div className="sd-field">
             <label className="sd-label">Language <span className="sd-req">*</span></label>
             <select
@@ -244,7 +304,6 @@ export default function SongDetail({ data, onChange }: Props) {
             </select>
           </div>
 
-          {/* DATE */}
           <div className="sd-field">
             <label className="sd-label">Campaign End Date <span className="sd-req">*</span></label>
             <input
@@ -256,13 +315,20 @@ export default function SongDetail({ data, onChange }: Props) {
               onChange={e => update('campaignEndDate', e.target.value)}
             />
           </div>
-
         </div>
 
-        {/* DEMO UPLOAD */}
+        {/* DEMO */}
         <div className="sd-field">
           <label className="sd-label">1-Min Demo Track <span className="sd-req">*</span></label>
-          {data.demoFile ? (
+
+          {demoUploading && (
+            <div className="sd-uploading-zone">
+              <Loader2 size={24} className="sd-spin" />
+              <div className="sd-uploading-text">Uploading demo...</div>
+            </div>
+          )}
+
+          {!demoUploading && data.demoFile && data.demoUrl && (
             <div className="sd-demo-card">
               <div className="sd-demo-left">
                 <div className="sd-demo-icon-wrap">
@@ -270,14 +336,16 @@ export default function SongDetail({ data, onChange }: Props) {
                 </div>
                 <div>
                   <div className="sd-demo-name">{data.demoFile.name}</div>
-                  <div className="sd-demo-status">✓ Demo uploaded successfully</div>
+                  <div className="sd-demo-status">✓ Uploaded to cloud</div>
                 </div>
               </div>
               <button type="button" className="sd-remove-btn" onClick={removeDemo}>
                 <X size={16} />
               </button>
             </div>
-          ) : (
+          )}
+
+          {!demoUploading && !data.demoUrl && (
             <div
               className="sd-upload-zone"
               onClick={() => demoInputRef.current?.click()}
@@ -291,23 +359,37 @@ export default function SongDetail({ data, onChange }: Props) {
               <span className="sd-upload-btn-hint">Click to browse files</span>
             </div>
           )}
+
+          {demoError && (
+            <div className="sd-error-box">⚠ {demoError} — please try again</div>
+          )}
         </div>
 
-        {/* COVER ART UPLOAD */}
+        {/* COVER ART */}
         <div className="sd-field">
           <label className="sd-label">Cover Art <span className="sd-req">*</span></label>
-          {data.coverArtUrl ? (
+
+          {coverUploading && (
+            <div className="sd-uploading-zone">
+              <Loader2 size={24} className="sd-spin" />
+              <div className="sd-uploading-text">Uploading cover art...</div>
+            </div>
+          )}
+
+          {!coverUploading && data.coverArtFile && data.coverArtUrl && (
             <div className="sd-cover-card">
               <img src={data.coverArtUrl} alt="cover" className="sd-cover-img" />
               <div className="sd-cover-info">
-                <div className="sd-cover-name">{data.coverArtFile?.name}</div>
-                <div className="sd-cover-status">Cover art uploaded successfully</div>
+                <div className="sd-cover-name">{data.coverArtFile.name}</div>
+                <div className="sd-cover-status">✓ Uploaded to cloud</div>
                 <button type="button" className="sd-cover-remove" onClick={removeCover}>
                   Remove cover
                 </button>
               </div>
             </div>
-          ) : (
+          )}
+
+          {!coverUploading && !data.coverArtUrl && (
             <div
               className="sd-upload-zone"
               onClick={() => coverInputRef.current?.click()}
@@ -321,8 +403,11 @@ export default function SongDetail({ data, onChange }: Props) {
               <span className="sd-upload-btn-hint">Click to browse files</span>
             </div>
           )}
-        </div>
 
+          {coverError && (
+            <div className="sd-error-box">⚠ {coverError} — please try again</div>
+          )}
+        </div>
       </div>
     </>
   )

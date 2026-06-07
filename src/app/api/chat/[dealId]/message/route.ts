@@ -17,11 +17,12 @@ export async function POST(
     }
 
     const { dealId } = await params
-    const { content } = await req.json()
+    const { content, fileUrl, fileType, fileName } = await req.json()
 
-    if (!content?.trim()) {
+    // Must have either text or a file
+    if (!content?.trim() && !fileUrl) {
       return NextResponse.json(
-        { success: false, error: 'Message required' },
+        { success: false, error: 'Message or file required' },
         { status: 400 }
       )
     }
@@ -41,10 +42,8 @@ export async function POST(
       )
     }
 
-    const isArtist = deal.artistId === user.id
-    const isKhapeetar =
-      user.role === 'khapeetar' &&
-      deal.khapeetar.userId === user.id
+    const isArtist     = deal.artistId === user.id
+    const isKhapeetar  = user.role === 'khapeetar' && deal.khapeetar.userId === user.id
 
     if (!isArtist && !isKhapeetar) {
       return NextResponse.json(
@@ -53,21 +52,30 @@ export async function POST(
       )
     }
 
+    // Build content string — if file, embed metadata in content as JSON marker
+    // so we don't need a DB migration
+    let finalContent = content?.trim() || ''
+    if (fileUrl) {
+      const fileMeta = JSON.stringify({ fileUrl, fileType: fileType || 'file', fileName: fileName || 'Attachment' })
+      finalContent = finalContent
+        ? `${finalContent}\n__FILE__${fileMeta}`
+        : `__FILE__${fileMeta}`
+    }
+
     const message = await prisma.chatMessage.create({
       data: {
-        roomId: deal.chatRoom.id,
+        roomId:   deal.chatRoom.id,
         senderId: user.id,
-        content: content.trim(),
+        content:  finalContent,
+      },
+      include: {
+        sender: { select: { id: true, name: true, role: true } },
       },
     })
 
-    return NextResponse.json({
-      success: true,
-      data: message,
-    })
+    return NextResponse.json({ success: true, data: message })
   } catch (err) {
     console.error('[POST /api/chat/message]', err)
-
     return NextResponse.json(
       { success: false, error: 'Send failed' },
       { status: 500 }

@@ -27,6 +27,8 @@ model User {
   wallet               Wallet?
   royaltyDistributions RoyaltyDistribution[] @relation("RoyaltyDistributions")
   royaltyPayouts       RoyaltyPayout[]       @relation("RoyaltyPayouts")
+  depositRequests DepositRequest[]
+  withdrawalRequests WithdrawalRequest[]
 }
 
 model ArtistProfile {
@@ -311,4 +313,32 @@ model RoyaltyPayout {
 
   distribution RoyaltyDistribution @relation(fields: [royaltyDistributionId], references: [id])
   user         User                @relation("RoyaltyPayouts", fields: [userId], references: [id])
+}
+
+model DepositRequest {
+  id            String   @id @default(uuid())
+  userId        String
+  amount        Float
+  utrNumber     String?
+  screenshotUrl String?
+  status        String   @default("pending")  // pending | approved | rejected
+  note          String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id])
+}
+
+model WithdrawalRequest {
+  id         String   @id @default(uuid())
+  userId     String
+  amount     Float
+  method     String   // upi | bank_transfer
+  detail     String   // UPI ID or bank details
+  status     String   @default("pending") // pending | paid | rejected
+  note       String?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id])
 }
