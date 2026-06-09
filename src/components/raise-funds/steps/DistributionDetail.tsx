@@ -443,7 +443,7 @@ export default function DistributionDetail({ data, onChange }: Props) {
                     role="button" tabIndex={0} onKeyDown={e => e.key === 'Enter' && songFileRef.current?.click()}>
                     <Upload size={30} style={{ color: '#7c3aed' }} />
                     <div className="uploadTitle">{data.releaseType === 'album' ? 'Upload Album / EP Files' : 'Upload Song File'}</div>
-                    <div className="uploadSub">WAV, FLAC, MP3 — max 100MB</div>
+                    <div className="uploadSub">MP3 Only — max 4.5MB</div>
                   </div>
                 )}
 

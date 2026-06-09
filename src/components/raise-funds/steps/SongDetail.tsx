@@ -355,7 +355,7 @@ export default function SongDetail({ data, onChange }: Props) {
             >
               <Upload size={22} className="sd-upload-icon" />
               <div className="sd-upload-main">Upload demo track</div>
-              <div className="sd-upload-sub">MP3, WAV, FLAC — max 100MB</div>
+              <div className="sd-upload-sub">MP3 Only — max 4.5MB</div>
               <span className="sd-upload-btn-hint">Click to browse files</span>
             </div>
           )}
