@@ -44,8 +44,13 @@ export async function POST(req: NextRequest) {
     let artist = await prisma.user.findFirst({ where: { role: 'artist' } })
     if (!artist) {
       artist = await prisma.user.create({
-        data: { email: 'artist@demo.com', name: 'Demo Artist', role: 'artist' }
-      })
+  data: {
+    email:        'artist@demo.com',
+    name:         'Demo Artist',
+    role:         'artist',
+    passwordHash: 'demo-placeholder',
+  }
+})
     }
 
     // ── Song ─────────────────────────────────────────────────────────

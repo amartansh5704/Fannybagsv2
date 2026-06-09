@@ -105,7 +105,7 @@ export default function AdminSongDetailPage() {
         <div style={{display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',minHeight:'100vh',background:'#06060a',gap:'12px'}}>
           <div style={{fontSize:'32px'}}>🎵</div>
           <p style={{color:'#f87171',fontSize:'15px',fontWeight:600}}>Song not found</p>
-          <button onClick={() => router.back()} style={{fontSize:'13px',color:'#71717a',background:'none',border:'none',cursor:'pointer',fontFamily:'inherit',padding:'8px 16px',borderRadius:'10px',background:'rgba(255,255,255,0.04)'}}>← Back</button>
+          <button onClick={() => router.back()} style={{fontSize:'13px',color:'#71717a',border:'none',cursor:'pointer',fontFamily:'inherit',padding:'8px 16px',borderRadius:'10px',background:'rgba(255,255,255,0.04)'}}>← Back</button>
         </div>
       </AdminLayout>
     )

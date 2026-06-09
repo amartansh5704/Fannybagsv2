@@ -546,7 +546,7 @@ export default function AdminCampaignsPage() {
                             }}
                             style={{
                               display: 'flex', alignItems: 'center', gap: 6,
-                              padding: '8px 16px', borderRadius: 10, border: 'none', cursor: 'pointer',
+                              padding: '8px 16px', borderRadius: 10, cursor: 'pointer',
                               background: 'rgba(239,68,68,0.08)', color: '#f87171',
                               fontSize: 12, fontWeight: 700,
                               border: '1px solid rgba(239,68,68,0.15)',
