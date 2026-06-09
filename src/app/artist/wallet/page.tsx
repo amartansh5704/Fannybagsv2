@@ -7,7 +7,7 @@ import {
   Loader2, RefreshCw, Upload, Copy, Check,
 } from 'lucide-react'
 
-const YOUR_UPI_ID = 'yourname@upi'
+const YOUR_UPI_ID = '8448621626@ptsbi'
 const YOUR_UPI_QR = '/upi-qr.png'
 
 const TX_COLORS: Record<string, { color: string; bg: string; border: string; sign: string }> = {
@@ -50,7 +50,6 @@ export default function ArtistWalletPage() {
   const [activeTab, setActiveTab]     = useState<'all' | 'credit' | 'debit'>('all')
   const [hoveredTx, setHoveredTx]     = useState<string | null>(null)
 
-  // Deposit form
   const [step, setStep]               = useState<1 | 2 | 3>(1)
   const [depositAmt, setDepositAmt]   = useState('')
   const [utrNumber, setUtrNumber]     = useState('')
@@ -60,7 +59,6 @@ export default function ArtistWalletPage() {
   const [submitDone, setSubmitDone]   = useState(false)
   const [copied, setCopied]           = useState(false)
 
-  // Withdrawal form
   const [payoutAmt, setPayoutAmt]         = useState('')
   const [payoutMethod, setPayoutMethod]   = useState<'upi' | 'bank_transfer'>('upi')
   const [payoutDetail, setPayoutDetail]   = useState('')
@@ -71,17 +69,14 @@ export default function ArtistWalletPage() {
   const loadAll = async (silent = false) => {
     if (!silent) setLoading(true)
     else setRefreshing(true)
-
     const [wRes, drRes, wrRes] = await Promise.all([
       fetch('/api/wallet').then(r => r.json()),
       fetch('/api/wallet/deposit-request').then(r => r.json()),
       fetch('/api/wallet/withdraw').then(r => r.json()),
     ])
-
     if (wRes.success)  { setWallet(wRes.data.wallet); setTx(wRes.data.transactions ?? []) }
     if (drRes.success) setDepReqs(drRes.data)
     if (wrRes.success) setWdReqs(wrRes.data)
-
     setLoading(false)
     setRefreshing(false)
   }
@@ -94,8 +89,7 @@ export default function ArtistWalletPage() {
     e.target.value = ''
     setSsUpload(true)
     try {
-      const fd = new FormData()
-      fd.append('file', file)
+      const fd = new FormData(); fd.append('file', file)
       const res  = await fetch('/api/upload', { method: 'POST', body: fd })
       const json = await res.json()
       if (json.success) setSsUrl(json.url)
@@ -113,13 +107,8 @@ export default function ArtistWalletPage() {
     const json = await res.json()
     setSubmit(false)
     if (json.success) {
-      setSubmitDone(true)
-      await loadAll(true)
-      setTimeout(() => {
-        setSubmitDone(false); setStep(1)
-        setDepositAmt(''); setUtrNumber(''); setSsUrl('')
-        depositDialogRef.current?.close()
-      }, 2500)
+      setSubmitDone(true); await loadAll(true)
+      setTimeout(() => { setSubmitDone(false); setStep(1); setDepositAmt(''); setUtrNumber(''); setSsUrl(''); depositDialogRef.current?.close() }, 2500)
     } else { alert(json.error || 'Submission failed') }
   }
 
@@ -130,7 +119,6 @@ export default function ArtistWalletPage() {
     if (amt < 100)                    { setPayoutError('Minimum withdrawal is ₹100'); return }
     if (!payoutDetail.trim())         { setPayoutError(payoutMethod === 'upi' ? 'Enter your UPI ID' : 'Enter bank details'); return }
     if (amt > (wallet?.balance ?? 0)) { setPayoutError('Insufficient balance'); return }
-
     setPayingOut(true)
     const res  = await fetch('/api/wallet/withdraw', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
@@ -139,18 +127,12 @@ export default function ArtistWalletPage() {
     const json = await res.json()
     setPayingOut(false)
     if (json.success) {
-      setPayoutDone(true)
-      setPayoutAmt(''); setPayoutDetail('')
-      await loadAll(true)
+      setPayoutDone(true); setPayoutAmt(''); setPayoutDetail(''); await loadAll(true)
       setTimeout(() => { setPayoutDone(false); payoutDialogRef.current?.close() }, 2500)
     } else { setPayoutError(json.error || 'Withdrawal failed') }
   }
 
-  const copyUpi = () => {
-    navigator.clipboard.writeText(YOUR_UPI_ID)
-    setCopied(true)
-    setTimeout(() => setCopied(false), 2000)
-  }
+  const copyUpi = () => { navigator.clipboard.writeText(YOUR_UPI_ID); setCopied(true); setTimeout(() => setCopied(false), 2000) }
 
   const balance    = wallet?.balance ?? 0
   const filteredTx = transactions.filter(tx => {
@@ -193,6 +175,18 @@ export default function ArtistWalletPage() {
         input[type="number"]::-webkit-inner-spin-button,
         input[type="number"]::-webkit-outer-spin-button { -webkit-appearance:none; margin:0; }
         input[type="number"] { -moz-appearance:textfield; }
+
+        /* ── Mobile responsive fixes ─────────────────────────── */
+        @media (max-width: 640px) {
+          .w-hero-inner { flex-direction: column !important; align-items: flex-start !important; gap: 20px !important; }
+          .w-hero-btns  { width: 100% !important; }
+          .w-hero-btns button { flex: 1 !important; justify-content: center !important; padding: 12px 8px !important; font-size: 13px !important; }
+          .w-balance    { font-size: clamp(28px, 8vw, 48px) !important; }
+          .w-page-pad   { padding: 16px 16px 60px !important; }
+          .w-header-pad { padding: 14px 16px !important; }
+          .w-tx-row     { flex-wrap: wrap !important; gap: 8px !important; }
+          .w-tx-amount  { width: 100% !important; text-align: left !important; }
+        }
       `}</style>
 
       <input ref={ssInputRef} type="file" accept="image/*" style={{ display:'none' }} onChange={handleSsUpload} />
@@ -208,7 +202,7 @@ export default function ArtistWalletPage() {
 
         {/* Header */}
         <div style={{ position:'relative', zIndex:1, borderBottom:'1px solid rgba(255,255,255,0.05)', background:'rgba(6,6,10,0.8)', backdropFilter:'blur(20px)', animation:'wFadeInDown 0.4s ease-out' }}>
-          <div style={{ padding:'22px 32px', maxWidth:1100, margin:'0 auto', display:'flex', alignItems:'center', justifyContent:'space-between', flexWrap:'wrap', gap:14 }}>
+          <div className="w-header-pad" style={{ padding:'22px 32px', maxWidth:1100, margin:'0 auto', display:'flex', alignItems:'center', justifyContent:'space-between', flexWrap:'wrap', gap:14 }}>
             <div style={{ display:'flex', alignItems:'center', gap:14 }}>
               <div style={{ width:44, height:44, borderRadius:14, background:'linear-gradient(135deg,rgba(168,85,247,0.14),rgba(236,72,153,0.08))', border:'1px solid rgba(168,85,247,0.16)', display:'flex', alignItems:'center', justifyContent:'center' }}>
                 <Wallet size={20} color="#c084fc" />
@@ -227,32 +221,40 @@ export default function ArtistWalletPage() {
           </div>
         </div>
 
-        <div style={{ position:'relative', zIndex:1, padding:'28px 32px 60px', maxWidth:1100, margin:'0 auto' }}>
+        <div className="w-page-pad" style={{ position:'relative', zIndex:1, padding:'28px 32px 60px', maxWidth:1100, margin:'0 auto' }}>
 
-          {/* Balance hero */}
-          <div style={{ position:'relative', overflow:'hidden', background:'linear-gradient(135deg,rgba(168,85,247,0.12),rgba(236,72,153,0.07),rgba(255,255,255,0.02))', border:'1px solid rgba(168,85,247,0.18)', borderRadius:24, padding:'36px', marginBottom:24, animation:'wFadeInUp 0.4s ease-out' }}>
+          {/* ── Balance hero — mobile fixed ────────────────────────── */}
+          <div style={{ position:'relative', overflow:'hidden', background:'linear-gradient(135deg,rgba(168,85,247,0.12),rgba(236,72,153,0.07),rgba(255,255,255,0.02))', border:'1px solid rgba(168,85,247,0.18)', borderRadius:24, padding:'28px 24px', marginBottom:24, animation:'wFadeInUp 0.4s ease-out' }}>
             <div style={{ position:'absolute', top:0, left:0, right:0, height:2, background:'linear-gradient(90deg,transparent,#a855f7,#ec4899,transparent)', backgroundSize:'200% 100%', animation:'wGradShift 4s ease-in-out infinite' }} />
             <div style={{ position:'absolute', top:'-30px', right:'-30px', width:200, height:200, background:'radial-gradient(circle,rgba(168,85,247,0.15) 0%,transparent 70%)', borderRadius:'50%', pointerEvents:'none' }} />
-            <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', flexWrap:'wrap', gap:20, position:'relative' }}>
-              <div>
+
+            {/* inner — stacks on mobile */}
+            <div className="w-hero-inner" style={{ display:'flex', alignItems:'center', justifyContent:'space-between', flexWrap:'wrap', gap:20, position:'relative' }}>
+
+              {/* Balance */}
+              <div style={{ minWidth:0 }}>
                 <p style={{ fontSize:11, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.12em', color:'#7c3aed', margin:'0 0 8px 0' }}>Available Balance</p>
-                <p style={{ fontSize:48, fontWeight:800, color:'#fff', margin:0, lineHeight:1.1, letterSpacing:'-0.02em' }}>₹{balance.toLocaleString('en-IN')}</p>
+                <p className="w-balance" style={{ fontSize:'clamp(28px, 7vw, 48px)', fontWeight:800, color:'#fff', margin:0, lineHeight:1.1, letterSpacing:'-0.02em', wordBreak:'break-all' }}>
+                  ₹{balance.toLocaleString('en-IN')}
+                </p>
                 <div style={{ display:'flex', alignItems:'center', gap:6, marginTop:10 }}>
                   <div style={{ width:7, height:7, borderRadius:'50%', background:'#34d399', animation:'wPulseDot 2s ease-in-out infinite' }} />
                   <span style={{ fontSize:12, color:'#52525b', fontWeight:600 }}>Live balance</span>
                 </div>
               </div>
-              <div style={{ display:'flex', gap:10 }}>
+
+              {/* Buttons — full width on mobile */}
+              <div className="w-hero-btns" style={{ display:'flex', gap:10, flexWrap:'wrap' }}>
                 <button onClick={() => { setStep(1); setSubmitDone(false); depositDialogRef.current?.showModal() }}
                   onMouseEnter={e => { e.currentTarget.style.transform='translateY(-1px)'; e.currentTarget.style.boxShadow='0 6px 24px rgba(16,185,129,0.3)' }}
                   onMouseLeave={e => { e.currentTarget.style.transform='translateY(0)'; e.currentTarget.style.boxShadow='0 2px 12px rgba(16,185,129,0.15)' }}
-                  style={{ display:'flex', alignItems:'center', gap:8, padding:'12px 22px', background:'linear-gradient(135deg,rgba(16,185,129,0.15),rgba(20,184,166,0.1))', border:'1px solid rgba(16,185,129,0.3)', borderRadius:14, color:'#34d399', fontSize:14, fontWeight:700, cursor:'pointer', transition:'all .3s ease', fontFamily:'inherit', boxShadow:'0 2px 12px rgba(16,185,129,0.15)' }}>
+                  style={{ flex:1, display:'flex', alignItems:'center', justifyContent:'center', gap:8, padding:'12px 16px', background:'linear-gradient(135deg,rgba(16,185,129,0.15),rgba(20,184,166,0.1))', border:'1px solid rgba(16,185,129,0.3)', borderRadius:14, color:'#34d399', fontSize:14, fontWeight:700, cursor:'pointer', transition:'all .3s ease', fontFamily:'inherit', boxShadow:'0 2px 12px rgba(16,185,129,0.15)', whiteSpace:'nowrap' }}>
                   <ArrowDownLeft size={16} /> Add Money
                 </button>
                 <button onClick={() => { setPayoutError(''); setPayoutDone(false); payoutDialogRef.current?.showModal() }}
                   onMouseEnter={e => { e.currentTarget.style.transform='translateY(-1px)'; e.currentTarget.style.boxShadow='0 6px 24px rgba(239,68,68,0.25)' }}
                   onMouseLeave={e => { e.currentTarget.style.transform='translateY(0)'; e.currentTarget.style.boxShadow='0 2px 12px rgba(239,68,68,0.1)' }}
-                  style={{ display:'flex', alignItems:'center', gap:8, padding:'12px 22px', background:'linear-gradient(135deg,rgba(239,68,68,0.1),rgba(239,68,68,0.06))', border:'1px solid rgba(239,68,68,0.2)', borderRadius:14, color:'#f87171', fontSize:14, fontWeight:700, cursor:'pointer', transition:'all .3s ease', fontFamily:'inherit', boxShadow:'0 2px 12px rgba(239,68,68,0.1)' }}>
+                  style={{ flex:1, display:'flex', alignItems:'center', justifyContent:'center', gap:8, padding:'12px 16px', background:'linear-gradient(135deg,rgba(239,68,68,0.1),rgba(239,68,68,0.06))', border:'1px solid rgba(239,68,68,0.2)', borderRadius:14, color:'#f87171', fontSize:14, fontWeight:700, cursor:'pointer', transition:'all .3s ease', fontFamily:'inherit', boxShadow:'0 2px 12px rgba(239,68,68,0.1)', whiteSpace:'nowrap' }}>
                   <ArrowUpRight size={16} /> Withdraw
                 </button>
               </div>
@@ -260,19 +262,19 @@ export default function ArtistWalletPage() {
           </div>
 
           {/* Stats */}
-          <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit,minmax(200px,1fr))', gap:14, marginBottom:28, animation:'wFadeInUp 0.4s ease-out 0.1s both' }}>
+          <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit,minmax(150px,1fr))', gap:12, marginBottom:28, animation:'wFadeInUp 0.4s ease-out 0.1s both' }}>
             {[
               { label:'Total Deposited',    value:`₹${(wallet?.totalDeposited ?? 0).toLocaleString('en-IN')}`, color:'#34d399', icon:'💰' },
               { label:'Total Spent',        value:`₹${(wallet?.totalSpent ?? 0).toLocaleString('en-IN')}`,     color:'#f87171', icon:'📤' },
               { label:'Pending Deposits',   value: depositReqs.filter(r => r.status === 'pending').length,     color:'#fbbf24', icon:'⏳' },
               { label:'Pending Withdrawals',value: withdrawReqs.filter(r => r.status === 'pending').length,    color:'#f87171', icon:'🏦' },
             ].map((s, i) => (
-              <div key={i} style={{ background:'rgba(255,255,255,0.03)', border:'1px solid rgba(255,255,255,0.06)', borderRadius:18, padding:'20px 22px' }}>
-                <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:10 }}>
-                  <span style={{ fontSize:18 }}>{s.icon}</span>
+              <div key={i} style={{ background:'rgba(255,255,255,0.03)', border:'1px solid rgba(255,255,255,0.06)', borderRadius:18, padding:'16px' }}>
+                <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:8 }}>
+                  <span style={{ fontSize:16 }}>{s.icon}</span>
                   <p style={{ fontSize:10, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.1em', color:'#3f3f46', margin:0 }}>{s.label}</p>
                 </div>
-                <p style={{ fontSize:22, fontWeight:800, color:s.color, margin:0 }}>{s.value}</p>
+                <p style={{ fontSize:20, fontWeight:800, color:s.color, margin:0 }}>{s.value}</p>
               </div>
             ))}
           </div>
@@ -285,15 +287,17 @@ export default function ArtistWalletPage() {
                 {depositReqs.map((req, idx) => {
                   const s = DEP_STATUS[req.status as keyof typeof DEP_STATUS] ?? DEP_STATUS.pending
                   return (
-                    <div key={req.id} style={{ display:'flex', alignItems:'center', gap:14, padding:'14px 18px', background:'rgba(255,255,255,0.03)', border:'1px solid rgba(255,255,255,0.06)', borderRadius:14, animation:`wFadeInUp .3s ease-out ${idx * 0.04}s both` }}>
+                    <div key={req.id} style={{ display:'flex', alignItems:'center', gap:12, padding:'12px 14px', background:'rgba(255,255,255,0.03)', border:'1px solid rgba(255,255,255,0.06)', borderRadius:14, flexWrap:'wrap', animation:`wFadeInUp .3s ease-out ${idx * 0.04}s both` }}>
                       <div style={{ width:36, height:36, borderRadius:10, background:s.bg, border:`1px solid ${s.border}`, display:'flex', alignItems:'center', justifyContent:'center', fontSize:16, flexShrink:0 }}>{s.icon}</div>
                       <div style={{ flex:1, minWidth:0 }}>
                         <p style={{ fontSize:14, fontWeight:700, color:'#fff', margin:0 }}>₹{req.amount.toLocaleString('en-IN')}</p>
                         <p style={{ fontSize:11, color:'#52525b', margin:'2px 0 0 0' }}>UTR: {req.utrNumber || 'N/A'} · {new Date(req.createdAt).toLocaleDateString('en-IN', { day:'numeric', month:'short' })}</p>
                         {req.note && req.status === 'rejected' && <p style={{ fontSize:11, color:'#f87171', margin:'2px 0 0 0' }}>Reason: {req.note}</p>}
                       </div>
-                      {req.screenshotUrl && <a href={req.screenshotUrl} target="_blank" rel="noreferrer" style={{ fontSize:11, color:'#c084fc', textDecoration:'none', fontWeight:600 }}>View SS ↗</a>}
-                      <div style={{ padding:'4px 12px', borderRadius:999, background:s.bg, border:`1px solid ${s.border}`, fontSize:11, fontWeight:700, color:s.color, flexShrink:0 }}>{s.label}</div>
+                      <div style={{ display:'flex', alignItems:'center', gap:8, flexShrink:0 }}>
+                        {req.screenshotUrl && <a href={req.screenshotUrl} target="_blank" rel="noreferrer" style={{ fontSize:11, color:'#c084fc', textDecoration:'none', fontWeight:600 }}>View ↗</a>}
+                        <div style={{ padding:'4px 10px', borderRadius:999, background:s.bg, border:`1px solid ${s.border}`, fontSize:11, fontWeight:700, color:s.color }}>{s.label}</div>
+                      </div>
                     </div>
                   )
                 })}
@@ -309,16 +313,14 @@ export default function ArtistWalletPage() {
                 {withdrawReqs.map((req, idx) => {
                   const s = WD_STATUS[req.status as keyof typeof WD_STATUS] ?? WD_STATUS.pending
                   return (
-                    <div key={req.id} style={{ display:'flex', alignItems:'center', gap:14, padding:'14px 18px', background:'rgba(255,255,255,0.03)', border:'1px solid rgba(255,255,255,0.06)', borderRadius:14, animation:`wFadeInUp .3s ease-out ${idx * 0.04}s both` }}>
+                    <div key={req.id} style={{ display:'flex', alignItems:'center', gap:12, padding:'12px 14px', background:'rgba(255,255,255,0.03)', border:'1px solid rgba(255,255,255,0.06)', borderRadius:14, flexWrap:'wrap', animation:`wFadeInUp .3s ease-out ${idx * 0.04}s both` }}>
                       <div style={{ width:36, height:36, borderRadius:10, background:s.bg, border:`1px solid ${s.border}`, display:'flex', alignItems:'center', justifyContent:'center', fontSize:16, flexShrink:0 }}>{s.icon}</div>
                       <div style={{ flex:1, minWidth:0 }}>
                         <p style={{ fontSize:14, fontWeight:700, color:'#fff', margin:0 }}>₹{req.amount.toLocaleString('en-IN')}</p>
-                        <p style={{ fontSize:11, color:'#52525b', margin:'2px 0 0 0' }}>
-                          {req.method === 'upi' ? '📱' : '🏦'} {req.detail} · {new Date(req.createdAt).toLocaleDateString('en-IN', { day:'numeric', month:'short' })}
-                        </p>
+                        <p style={{ fontSize:11, color:'#52525b', margin:'2px 0 0 0' }}>{req.method === 'upi' ? '📱' : '🏦'} {req.detail} · {new Date(req.createdAt).toLocaleDateString('en-IN', { day:'numeric', month:'short' })}</p>
                         {req.note && req.status === 'rejected' && <p style={{ fontSize:11, color:'#f87171', margin:'2px 0 0 0' }}>Reason: {req.note}</p>}
                       </div>
-                      <div style={{ padding:'4px 12px', borderRadius:999, background:s.bg, border:`1px solid ${s.border}`, fontSize:11, fontWeight:700, color:s.color, flexShrink:0 }}>{s.label}</div>
+                      <div style={{ padding:'4px 10px', borderRadius:999, background:s.bg, border:`1px solid ${s.border}`, fontSize:11, fontWeight:700, color:s.color, flexShrink:0 }}>{s.label}</div>
                     </div>
                   )
                 })}
@@ -333,7 +335,7 @@ export default function ArtistWalletPage() {
               <div style={{ display:'flex', gap:6 }}>
                 {(['all','credit','debit'] as const).map(tab => (
                   <button key={tab} onClick={() => setActiveTab(tab)}
-                    style={{ padding:'6px 14px', borderRadius:999, fontSize:12, fontWeight:700, cursor:'pointer', border:'1px solid', transition:'all .2s ease', fontFamily:'inherit',
+                    style={{ padding:'6px 12px', borderRadius:999, fontSize:12, fontWeight:700, cursor:'pointer', border:'1px solid', transition:'all .2s ease', fontFamily:'inherit',
                       ...(activeTab === tab
                         ? { background:'rgba(168,85,247,0.12)', borderColor:'rgba(168,85,247,0.3)', color:'#c084fc' }
                         : { background:'rgba(255,255,255,0.03)', borderColor:'rgba(255,255,255,0.07)', color:'#52525b' }
@@ -358,20 +360,17 @@ export default function ArtistWalletPage() {
                     <div key={tx.id}
                       onMouseEnter={() => setHoveredTx(tx.id)}
                       onMouseLeave={() => setHoveredTx(null)}
-                      style={{ display:'flex', alignItems:'center', gap:14, padding:'16px 20px', background: isH ? 'rgba(255,255,255,0.05)' : 'rgba(255,255,255,0.03)', border:`1px solid ${isH ? s.border : 'rgba(255,255,255,0.05)'}`, borderRadius:16, transition:'all .25s ease', animation:`wFadeInUp .3s ease-out ${idx * 0.03}s both`, transform: isH ? 'translateX(3px)' : 'translateX(0)' }}>
-                      <div style={{ width:42, height:42, borderRadius:12, background:s.bg, border:`1px solid ${s.border}`, display:'flex', alignItems:'center', justifyContent:'center', fontSize:18, flexShrink:0 }}>
+                      style={{ display:'flex', alignItems:'center', gap:12, padding:'14px 16px', background: isH ? 'rgba(255,255,255,0.05)' : 'rgba(255,255,255,0.03)', border:`1px solid ${isH ? s.border : 'rgba(255,255,255,0.05)'}`, borderRadius:16, transition:'all .25s ease', animation:`wFadeInUp .3s ease-out ${idx * 0.03}s both`, transform: isH ? 'translateX(3px)' : 'translateX(0)', flexWrap:'wrap' }}>
+                      <div style={{ width:40, height:40, borderRadius:12, background:s.bg, border:`1px solid ${s.border}`, display:'flex', alignItems:'center', justifyContent:'center', fontSize:17, flexShrink:0 }}>
                         {tx.type === 'deposit' ? '💰' : tx.type === 'withdrawal' ? '🏦' : tx.type === 'escrow' ? '🔒' : tx.type === 'royalty' ? '🎵' : tx.type === 'refund' ? '↩️' : '💸'}
                       </div>
                       <div style={{ flex:1, minWidth:0 }}>
                         <p style={{ fontSize:14, fontWeight:700, color:'#fff', margin:0, textTransform:'capitalize' }}>{tx.type?.replace(/_/g,' ')}</p>
                         {tx.description && <p style={{ fontSize:12, color:'#52525b', margin:'2px 0 0 0', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{tx.description}</p>}
+                        <p style={{ fontSize:11, color:'#3f3f46', margin:'2px 0 0 0' }}>{new Date(tx.createdAt).toLocaleDateString('en-IN', { day:'numeric', month:'short', year:'numeric' })}</p>
                       </div>
-                      <div style={{ textAlign:'right', flexShrink:0 }}>
-                        <p style={{ fontSize:13, color:'#3f3f46', margin:0, fontWeight:500 }}>{new Date(tx.createdAt).toLocaleDateString('en-IN', { day:'numeric', month:'short', year:'numeric' })}</p>
-                        <p style={{ fontSize:10, color:'#27272a', margin:'2px 0 0 0' }}>{new Date(tx.createdAt).toLocaleTimeString([], { hour:'2-digit', minute:'2-digit' })}</p>
-                      </div>
-                      <div style={{ padding:'6px 14px', background:s.bg, border:`1px solid ${s.border}`, borderRadius:10, flexShrink:0 }}>
-                        <p style={{ fontSize:15, fontWeight:800, color:s.color, margin:0, whiteSpace:'nowrap' }}>{s.sign}₹{tx.amount?.toLocaleString('en-IN')}</p>
+                      <div style={{ padding:'6px 12px', background:s.bg, border:`1px solid ${s.border}`, borderRadius:10, flexShrink:0 }}>
+                        <p style={{ fontSize:14, fontWeight:800, color:s.color, margin:0, whiteSpace:'nowrap' }}>{s.sign}₹{tx.amount?.toLocaleString('en-IN')}</p>
                       </div>
                     </div>
                   )
@@ -436,13 +435,13 @@ export default function ArtistWalletPage() {
                 </div>
                 <div style={{ display:'flex', justifyContent:'center', marginBottom:20 }}>
                   <div style={{ background:'#fff', padding:16, borderRadius:16, display:'inline-block' }}>
-                    <img src={YOUR_UPI_QR} alt="UPI QR" style={{ width:180, height:180, display:'block' }} onError={e => { (e.target as HTMLImageElement).style.display='none' }} />
+                    <img src={YOUR_UPI_QR} alt="UPI QR" style={{ width:160, height:160, display:'block' }} onError={e => { (e.target as HTMLImageElement).style.display='none' }} />
                     <p style={{ textAlign:'center', color:'#111', fontSize:12, margin:'8px 0 0 0', fontWeight:600 }}>Scan to pay</p>
                   </div>
                 </div>
                 <div style={{ display:'flex', alignItems:'center', gap:10, padding:'12px 16px', background:'rgba(16,185,129,0.06)', border:'1px solid rgba(16,185,129,0.15)', borderRadius:12, marginBottom:20 }}>
-                  <span style={{ flex:1, fontSize:15, fontWeight:700, color:'#34d399' }}>{YOUR_UPI_ID}</span>
-                  <button onClick={copyUpi} style={{ display:'flex', alignItems:'center', gap:5, padding:'6px 12px', borderRadius:8, background:'rgba(16,185,129,0.1)', border:'1px solid rgba(16,185,129,0.2)', color:'#34d399', fontSize:12, fontWeight:700, cursor:'pointer', fontFamily:'inherit' }}>
+                  <span style={{ flex:1, fontSize:14, fontWeight:700, color:'#34d399', wordBreak:'break-all' }}>{YOUR_UPI_ID}</span>
+                  <button onClick={copyUpi} style={{ display:'flex', alignItems:'center', gap:5, padding:'6px 12px', borderRadius:8, background:'rgba(16,185,129,0.1)', border:'1px solid rgba(16,185,129,0.2)', color:'#34d399', fontSize:12, fontWeight:700, cursor:'pointer', fontFamily:'inherit', flexShrink:0 }}>
                     {copied ? <Check size={12} /> : <Copy size={12} />}{copied ? 'Copied!' : 'Copy'}
                   </button>
                 </div>
@@ -506,32 +505,22 @@ export default function ArtistWalletPage() {
               onMouseLeave={e => { e.currentTarget.style.background='rgba(255,255,255,0.05)'; e.currentTarget.style.color='#71717a' }}
               style={{ width:34, height:34, borderRadius:9, background:'rgba(255,255,255,0.05)', border:'1px solid rgba(255,255,255,0.08)', color:'#71717a', fontSize:17, cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', transition:'all .2s ease', fontFamily:'inherit' }}>✕</button>
           </div>
-
           <div style={{ padding:26, maxHeight:'70vh', overflowY:'auto' }} className="w-tx-scroll">
             {payoutDone ? (
               <div style={{ textAlign:'center', padding:'40px 0', animation:'wPop .4s ease-out' }}>
                 <div style={{ fontSize:48, marginBottom:16 }}>✅</div>
                 <h3 style={{ fontSize:18, fontWeight:700, color:'#34d399', margin:'0 0 8px 0' }}>Withdrawal Requested!</h3>
-                <p style={{ fontSize:13, color:'#52525b', margin:0, lineHeight:1.6 }}>
-                  We'll send the money to your account and mark it as paid. Your wallet will be debited once confirmed.
-                </p>
+                <p style={{ fontSize:13, color:'#52525b', margin:0, lineHeight:1.6 }}>We'll send the money and mark it as paid. Your wallet will be debited once confirmed.</p>
               </div>
             ) : (
               <>
-                {/* Balance */}
                 <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', background:'rgba(255,255,255,0.03)', border:'1px solid rgba(255,255,255,0.06)', borderRadius:12, padding:'12px 16px', marginBottom:18 }}>
                   <span style={{ fontSize:13, color:'#52525b', fontWeight:500 }}>Available to withdraw</span>
                   <span style={{ fontSize:15, fontWeight:800, color:'#34d399' }}>₹{balance.toLocaleString('en-IN')}</span>
                 </div>
-
-                {/* How it works */}
                 <div style={{ background:'rgba(59,130,246,0.05)', border:'1px solid rgba(59,130,246,0.12)', borderRadius:12, padding:'12px 16px', marginBottom:18 }}>
-                  <p style={{ fontSize:12, color:'#60a5fa', margin:0, lineHeight:1.7 }}>
-                    ℹ️ <strong>How it works:</strong> Submit your request → Admin reviews and sends money manually → Admin marks as paid → Your wallet is debited.
-                  </p>
+                  <p style={{ fontSize:12, color:'#60a5fa', margin:0, lineHeight:1.7 }}>ℹ️ <strong>How it works:</strong> Submit your request → Admin reviews and sends money manually → Admin marks as paid → Your wallet is debited.</p>
                 </div>
-
-                {/* Method */}
                 <label style={{ display:'block', fontSize:10, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.1em', color:'#52525b', marginBottom:8 }}>Payout Method</label>
                 <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:8, marginBottom:16 }}>
                   {[{val:'upi' as const, label:'📱 UPI', sub:'Instant transfer'}, {val:'bank_transfer' as const, label:'🏦 Bank Transfer', sub:'1–3 business days'}].map(opt => (
@@ -546,12 +535,9 @@ export default function ArtistWalletPage() {
                     </button>
                   ))}
                 </div>
-
-                {/* Amount */}
                 <label style={{ display:'block', fontSize:10, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.1em', color:'#52525b', marginBottom:8 }}>Amount (₹)</label>
                 <input type="number" placeholder="Min ₹100" value={payoutAmt} onChange={e => setPayoutAmt(e.target.value)} className="w-input"
                   style={{ width:'100%', background:'rgba(255,255,255,0.03)', border:'1px solid rgba(255,255,255,0.08)', borderRadius:13, padding:'14px 16px', color:'#fff', fontSize:20, fontWeight:800, fontFamily:'inherit', boxSizing:'border-box', marginBottom:12, transition:'all .2s ease' }} />
-
                 <div style={{ display:'grid', gridTemplateColumns:'repeat(4,1fr)', gap:6, marginBottom:16 }}>
                   {[500,1000,2000,5000].filter(a => a <= balance).map(amt => (
                     <button key={amt} onClick={() => setPayoutAmt(String(amt))}
@@ -562,26 +548,18 @@ export default function ArtistWalletPage() {
                     </button>
                   ))}
                 </div>
-
-                {/* Destination */}
                 <label style={{ display:'block', fontSize:10, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.1em', color:'#52525b', marginBottom:8 }}>
                   {payoutMethod === 'upi' ? 'Your UPI ID' : 'Bank Account Details'}
                 </label>
-                <input
-                  placeholder={payoutMethod === 'upi' ? 'yourname@upi' : 'Account No · IFSC · Bank Name'}
+                <input placeholder={payoutMethod === 'upi' ? 'yourname@upi' : 'Account No · IFSC · Bank Name'}
                   value={payoutDetail} onChange={e => setPayoutDetail(e.target.value)} className="w-input"
                   style={{ width:'100%', background:'rgba(255,255,255,0.03)', border:'1px solid rgba(255,255,255,0.08)', borderRadius:13, padding:'13px 16px', color:'#fff', fontSize:14, fontFamily:'inherit', boxSizing:'border-box', marginBottom: payoutError ? 10 : 18, transition:'all .2s ease' }} />
-
                 {payoutError && (
                   <div style={{ display:'flex', alignItems:'center', gap:8, background:'rgba(239,68,68,0.07)', border:'1px solid rgba(239,68,68,0.15)', borderRadius:12, padding:'11px 14px', marginBottom:14, fontSize:13, color:'#f87171' }}>
                     ⚠️ {payoutError}
                   </div>
                 )}
-
-                <p style={{ fontSize:11, color:'#3f3f46', margin:'0 0 16px 0', lineHeight:1.6 }}>
-                  💡 Your wallet will only be debited after admin confirms the payment. Minimum ₹100.
-                </p>
-
+                <p style={{ fontSize:11, color:'#3f3f46', margin:'0 0 16px 0', lineHeight:1.6 }}>💡 Your wallet will only be debited after admin confirms the payment. Minimum ₹100.</p>
                 <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:10 }}>
                   <button onClick={() => payoutDialogRef.current?.close()}
                     onMouseEnter={e => { e.currentTarget.style.background='rgba(255,255,255,0.07)'; e.currentTarget.style.color='#fff' }}

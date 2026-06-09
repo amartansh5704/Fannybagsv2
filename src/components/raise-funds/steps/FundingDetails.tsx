@@ -591,7 +591,7 @@ export default function FundingDetails({
                   ) || 0
                 )
               }
-              placeholder="100000"
+              placeholder="2000"
               min={101}
               className="input"
             />

@@ -265,7 +265,7 @@ strong{font-weight:bold}
         </div>
 
         {/* Content */}
-        <div style={{ position:'relative',zIndex:1,padding:'28px 32px 48px',maxWidth:'1300px',margin:'0 auto' }}>
+        <div style={{ position:'relative',zIndex:1,padding:'28px 16px 48px',maxWidth:'1300px',margin:'0 auto' }}>
           {investments.length === 0 ? (
             <div style={{ display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',padding:'100px 0',animation:'fiFadeInUp 0.6s ease-out' }}>
               <div style={{ width:'80px',height:'80px',borderRadius:'24px',background:'linear-gradient(135deg,rgba(255,255,255,0.04),rgba(255,255,255,0.01))',border:'1px solid rgba(255,255,255,0.06)',display:'flex',alignItems:'center',justifyContent:'center',marginBottom:'20px' }}>
@@ -302,7 +302,7 @@ strong{font-weight:bold}
                     <div style={{ position:'absolute',top:0,left:0,right:0,height:'2px',background:'linear-gradient(90deg,transparent,#ec4899,#a855f7,transparent)',backgroundSize:'200% 100%',animation: isHovered ? 'fiGradientShift 2s ease-in-out infinite' : 'none',opacity: isHovered ? 1 : 0,transition:'opacity 0.3s ease' }}/>
                     <div style={{ position:'absolute',top:'-30px',right:'-30px',width:'140px',height:'140px',background:'radial-gradient(circle,rgba(236,72,153,0.06) 0%,transparent 70%)',borderRadius:'50%',pointerEvents:'none',opacity: isHovered ? 1 : 0.3,transition:'opacity 0.3s ease' }}/>
 
-                    <div style={{ display:'grid',gridTemplateColumns:'220px 1fr',minHeight:'220px' }}>
+                    <div style={{ display:'grid',gridTemplateColumns:'clamp(120px, 30vw, 220px) 1fr',minHeight:'180px' }}>
                       {/* Cover */}
                       <div style={{ position:'relative',overflow:'hidden',background:'#0d0d12',borderRadius:'24px 0 0 24px' }}>
                         {song.coverArtUrl ? (
@@ -335,7 +335,7 @@ strong{font-weight:bold}
                         </div>
 
                         {/* Metrics */}
-                        <div style={{ display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:'10px' }}>
+                        <div style={{ display:'grid',gridTemplateColumns:'repeat(auto-fit, minmax(120px, 1fr))',gap:'10px' }}>
                           {metricCards.map(m => {
                             const mH = hoveredStat === `${inv.id}-${m.key}`
                             return (
@@ -350,7 +350,7 @@ strong{font-weight:bold}
                         </div>
 
                         {/* Footer */}
-                        <div style={{ display:'flex',alignItems:'center',justifyContent:'space-between',paddingTop:'12px',borderTop:'1px solid rgba(255,255,255,0.04)',flexWrap:'wrap',gap:'10px' }}>
+                        <div style={{ display:'flex',alignItems:'center',justifyContent:'space-between',paddingTop:'12px',borderTop:'1px solid rgba(255,255,255,0.04)',flexWrap:'wrap',gap:'10px',overflowX:'auto' }}>
                           <span style={{ fontSize:'12px',color:'#3f3f46',fontWeight:500 }}>
                             Invested on {new Date(inv.createdAt).toLocaleDateString('en-IN', { day:'numeric', month:'short', year:'numeric' })}
                           </span>

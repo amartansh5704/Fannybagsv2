@@ -66,9 +66,9 @@ export default function RaiseFundsWizard() {
         // Must have picked released or unreleased
         return distribution.releaseStatus !== ''
       case 3:
-        // Must have a funding ask ≥ ₹10,000 and any campaign story (even 1 char)
+        // Must have a funding ask ≥ ₹2,000 and any campaign story (even 1 char)
         return (
-          funding.totalFundingAsk >= 10000 &&
+          funding.totalFundingAsk >= 2000 &&
           funding.campaignStory.trim().length > 0
         )
       case 4:
@@ -158,8 +158,8 @@ export default function RaiseFundsWizard() {
         <p className="text-xs text-amber-400 text-center mb-3">
           {step === 1 && 'Fill in song title, language, and end date to continue'}
           {step === 2 && 'Select a release status to continue'}
-          {step === 3 && funding.totalFundingAsk < 10000 && 'Minimum funding ask is ₹10,000'}
-          {step === 3 && funding.totalFundingAsk >= 10000 && funding.campaignStory.trim().length === 0 && 'Add a campaign story to continue'}
+          {step === 3 && funding.totalFundingAsk < 2000 && 'Minimum funding ask is ₹2,000'}
+          {step === 3 && funding.totalFundingAsk >= 2000 && funding.campaignStory.trim().length === 0 && 'Add a campaign story to continue'}
         </p>
       )}
 

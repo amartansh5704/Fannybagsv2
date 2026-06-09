@@ -7,7 +7,7 @@ import {
   Loader2, RefreshCw, Upload, Copy, Check,
 } from 'lucide-react'
 
-const YOUR_UPI_ID = 'yourname@upi'
+const YOUR_UPI_ID = '8448621626@ptsbi'
 const YOUR_UPI_QR = '/upi-qr.png'
 
 const TX_COLORS: Record<string, { color: string; bg: string; border: string; sign: string }> = {
@@ -210,7 +210,7 @@ export default function FanWalletPage() {
 
         {/* Header */}
         <div style={{ position:'relative', zIndex:1, borderBottom:'1px solid rgba(255,255,255,0.05)', background:'rgba(6,6,10,0.8)', backdropFilter:'blur(20px)', animation:'fFadeInDown 0.4s ease-out' }}>
-          <div style={{ padding:'22px 32px', maxWidth:1100, margin:'0 auto', display:'flex', alignItems:'center', justifyContent:'space-between', flexWrap:'wrap', gap:14 }}>
+          <div style={{ padding:'20px 16px', maxWidth:1100, margin:'0 auto', display:'flex', alignItems:'center', justifyContent:'space-between', flexWrap:'wrap', gap:14 }}>
             <div style={{ display:'flex', alignItems:'center', gap:14 }}>
               <div style={{ width:44, height:44, borderRadius:14, background:'linear-gradient(135deg,rgba(236,72,153,0.14),rgba(168,85,247,0.08))', border:'1px solid rgba(236,72,153,0.16)', display:'flex', alignItems:'center', justifyContent:'center' }}>
                 <Wallet size={20} color="#f472b6" />
@@ -229,7 +229,7 @@ export default function FanWalletPage() {
           </div>
         </div>
 
-        <div style={{ position:'relative', zIndex:1, padding:'28px 32px 60px', maxWidth:1100, margin:'0 auto' }}>
+        <div style={{ position:'relative', zIndex:1, padding:'20px 16px 60px', maxWidth:1100, margin:'0 auto' }}>
 
           {/* Balance hero */}
           <div style={{ position:'relative', overflow:'hidden', background:'linear-gradient(135deg,rgba(236,72,153,0.12),rgba(168,85,247,0.07),rgba(255,255,255,0.02))', border:'1px solid rgba(236,72,153,0.18)', borderRadius:24, padding:'36px', marginBottom:24, animation:'fFadeInUp 0.4s ease-out' }}>
@@ -238,13 +238,13 @@ export default function FanWalletPage() {
             <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', flexWrap:'wrap', gap:20, position:'relative' }}>
               <div>
                 <p style={{ fontSize:11, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.12em', color:'#db2777', margin:'0 0 8px 0' }}>Available Balance</p>
-                <p style={{ fontSize:48, fontWeight:800, color:'#fff', margin:0, lineHeight:1.1, letterSpacing:'-0.02em' }}>₹{balance.toLocaleString('en-IN')}</p>
+                <p style={{ fontSize:'clamp(28px, 6vw, 48px)', fontWeight:800, color:'#fff', margin:0, lineHeight:1.1, letterSpacing:'-0.02em' }}>₹{balance.toLocaleString('en-IN')}</p>
                 <div style={{ display:'flex', alignItems:'center', gap:6, marginTop:10 }}>
                   <div style={{ width:7, height:7, borderRadius:'50%', background:'#f472b6', animation:'fPulseDot 2s ease-in-out infinite' }} />
                   <span style={{ fontSize:12, color:'#52525b', fontWeight:600 }}>Live balance</span>
                 </div>
               </div>
-              <div style={{ display:'flex', gap:10 }}>
+              <div style={{ display:'flex', gap:10, flexWrap:'wrap' }}>
                 <button onClick={() => { setStep(1); setSubmitDone(false); depositDialogRef.current?.showModal() }}
                   onMouseEnter={e => { e.currentTarget.style.transform='translateY(-1px)'; e.currentTarget.style.boxShadow='0 6px 24px rgba(16,185,129,0.3)' }}
                   onMouseLeave={e => { e.currentTarget.style.transform='translateY(0)'; e.currentTarget.style.boxShadow='0 2px 12px rgba(16,185,129,0.15)' }}
