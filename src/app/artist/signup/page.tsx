@@ -4,7 +4,6 @@ import { signIn } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { Music, Loader2, Eye, EyeOff } from 'lucide-react'
-import { cn } from '@/lib/utils'
 
 const GENRES = ['Hip-Hop / Rap', 'Indie Pop', 'R&B / Soul', 'Electronic', 'Folk / Acoustic', 'Bollywood Pop', 'Punjabi', 'Classical Fusion', 'Rock', 'Other']
 
@@ -23,9 +22,17 @@ export default function ArtistSignup() {
 
   const u = (k: string, v: string) => setForm(f => ({ ...f, [k]: v }))
 
-  const canSubmit = !!(form.name && form.email && form.password && form.password.length >= 8)
+  // Phone is now required
+  const canSubmit = !!(
+    form.name &&
+    form.email &&
+    form.password &&
+    form.password.length >= 8 &&
+    form.phone.trim()
+  )
 
   const submit = async () => {
+    if (!form.phone.trim()) { setError('Phone number is required'); return }
     setLoading(true); setError('')
     try {
       const res = await fetch('/api/auth/signup', {
@@ -59,33 +66,29 @@ export default function ArtistSignup() {
 
         .as-root { min-height: 100vh; background: #09090f; color: #f0f0f8; font-family: 'DM Sans', sans-serif; display: flex; flex-direction: column; }
 
-        /* NAV */
         .as-nav { height: 60px; display: flex; align-items: center; justify-content: space-between; padding: 0 40px; border-bottom: 0.5px solid rgba(255,255,255,0.06); background: rgba(9,9,15,0.95); backdrop-filter: blur(12px); position: sticky; top: 0; z-index: 10; }
         .as-nav-logo { display: flex; align-items: center; gap: 9px; text-decoration: none; }
         .as-logo-icon { width: 28px; height: 28px; border-radius: 7px; background: linear-gradient(135deg,#7c3aed,#db2777); display: flex; align-items: center; justify-content: center; }
         .as-logo-text { font-family: 'Syne', sans-serif; font-weight: 800; font-size: 14px; letter-spacing: 1.5px; color: #fff; text-transform: uppercase; }
         .as-nav-tag { font-size: 11px; color: #2a2a3a; letter-spacing: 0.5px; }
 
-        /* PAGE */
         .as-page { flex: 1; padding: 44px 40px 60px; max-width: 1060px; margin: 0 auto; width: 100%; }
         .as-page-title { font-family: 'Syne', sans-serif; font-size: 24px; font-weight: 700; color: #fff; letter-spacing: -0.5px; margin-bottom: 4px; }
         .as-page-sub { font-size: 13px; color: #444; margin-bottom: 32px; }
 
-        /* TWO CARDS SIDE BY SIDE */
         .as-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; align-items: start; }
 
-        /* CARD */
         .as-card { background: #0d0d18; border: 0.5px solid rgba(255,255,255,0.07); border-radius: 18px; padding: 26px; }
         .as-card-title { font-family: 'Syne', sans-serif; font-size: 13.5px; font-weight: 700; color: #fff; margin-bottom: 20px; letter-spacing: -0.2px; display: flex; align-items: center; gap: 8px; }
         .as-card-dot { width: 6px; height: 6px; border-radius: 50%; background: linear-gradient(135deg,#7c3aed,#db2777); flex-shrink: 0; }
 
-        /* FIELDS */
         .as-field { margin-bottom: 14px; }
         .as-field:last-of-type { margin-bottom: 0; }
         .as-label { font-size: 10px; text-transform: uppercase; letter-spacing: 1.2px; color: #333; margin-bottom: 7px; display: block; font-weight: 500; }
         .as-input { width: 100%; background: rgba(255,255,255,0.04); border: 0.5px solid rgba(255,255,255,0.08); border-radius: 10px; padding: 11px 14px; font-size: 13px; color: #e0e0f0; outline: none; transition: all 0.2s; font-family: inherit; }
         .as-input::placeholder { color: #252535; }
         .as-input:focus { border-color: rgba(124,58,237,0.5); background: rgba(124,58,237,0.04); box-shadow: 0 0 0 3px rgba(124,58,237,0.06); }
+        .as-input-required { border-color: rgba(124,58,237,0.2); }
         .as-pw-wrap { position: relative; }
         .as-eye { position: absolute; right: 12px; top: 50%; transform: translateY(-50%); color: #333; cursor: pointer; background: none; border: none; padding: 0; transition: color 0.15s; }
         .as-eye:hover { color: #777; }
@@ -97,10 +100,8 @@ export default function ArtistSignup() {
         .as-textarea::placeholder { color: #252535; }
         .as-social-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; }
 
-        /* ERROR */
         .as-error { background: rgba(239,68,68,0.08); border: 0.5px solid rgba(239,68,68,0.2); border-radius: 10px; padding: 11px 14px; font-size: 12.5px; color: #f87171; margin-top: 16px; }
 
-        /* SUBMIT ROW — spans full width below both cards */
         .as-submit-row { margin-top: 20px; display: flex; flex-direction: column; align-items: stretch; gap: 14px; }
         .as-btn-primary { width: 100%; padding: 14px 24px; background: linear-gradient(135deg,#7c3aed,#db2777); border: none; border-radius: 11px; font-size: 14px; font-weight: 600; color: #fff; cursor: pointer; font-family: inherit; transition: all 0.2s; display: flex; align-items: center; justify-content: center; gap: 8px; letter-spacing: 0.2px; }
         .as-btn-primary:hover { opacity: 0.88; transform: translateY(-1px); box-shadow: 0 10px 28px rgba(124,58,237,0.3); }
@@ -109,7 +110,6 @@ export default function ArtistSignup() {
         .as-signin-link a { color: #9f7aea; text-decoration: none; transition: color 0.2s; }
         .as-signin-link a:hover { color: #c084fc; }
 
-        /* required star */
         .as-req { color: #7c3aed; margin-left: 2px; }
 
         @media (max-width: 720px) {
@@ -122,7 +122,6 @@ export default function ArtistSignup() {
 
       <div className="as-root">
 
-        {/* NAV */}
         <nav className="as-nav">
           <Link href="/" className="as-nav-logo">
             <div className="as-logo-icon"><Music size={14} color="#fff" /></div>
@@ -131,12 +130,10 @@ export default function ArtistSignup() {
           <span className="as-nav-tag">Artist Signup</span>
         </nav>
 
-        {/* PAGE */}
         <div className="as-page">
           <div className="as-page-title">Create Artist Account</div>
           <p className="as-page-sub">Fund your music. Keep control. Fill in both sections below.</p>
 
-          {/* TWO CARDS PARALLEL */}
           <div className="as-grid">
 
             {/* CARD 1 — Basic Info */}
@@ -170,9 +167,24 @@ export default function ArtistSignup() {
                   </button>
                 </div>
               </div>
+
+              {/* Phone — now required */}
               <div className="as-field">
-                <label className="as-label">Phone</label>
-                <input className="as-input" type="tel" value={form.phone} onChange={e => u('phone', e.target.value)} placeholder="+91 98765 43210" />
+                <label className="as-label">
+                  Phone <span className="as-req">*</span>
+                </label>
+                <input
+                  className="as-input as-input-required"
+                  type="tel"
+                  value={form.phone}
+                  onChange={e => u('phone', e.target.value)}
+                  placeholder="+91 98765 43210"
+                />
+                {!form.phone.trim() && (
+                  <p style={{ fontSize:11, color:'#52525b', margin:'5px 0 0 2px', fontWeight:500 }}>
+                    Required — used for artist verification
+                  </p>
+                )}
               </div>
             </div>
 
@@ -214,7 +226,6 @@ export default function ArtistSignup() {
 
           </div>
 
-          {/* ERROR + SUBMIT — full width below both cards */}
           {error && <div className="as-error">{error}</div>}
 
           <div className="as-submit-row">
@@ -233,7 +244,6 @@ export default function ArtistSignup() {
               <Link href="/artist/login">Sign in</Link>
             </p>
           </div>
-
         </div>
       </div>
     </>

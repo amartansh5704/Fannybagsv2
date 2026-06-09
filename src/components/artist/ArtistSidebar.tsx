@@ -24,7 +24,7 @@ const navItems = [
   { icon: Users,           label: 'Find Khapeetar', href: '/artist/find-khapeetar' },
   { icon: Briefcase,       label: 'Work & Deals',   href: '/artist/deals' },
   { icon: Wallet,          label: 'Wallet',          href: '/artist/wallet' },
-  { icon: Settings,        label: 'Settings',        href: '/artist/settings' },
+  { icon: Briefcase, label: 'Jobs', href: '/artist/jobs' },
 ]
 
 interface Props {

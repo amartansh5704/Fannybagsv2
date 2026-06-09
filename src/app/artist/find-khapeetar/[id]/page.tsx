@@ -46,17 +46,14 @@ export default function KhapeetarDetailPage() {
   const { data: session, status } = useSession()
 
   const requestDialogRef = useRef<HTMLDialogElement>(null)
-  const depositDialogRef = useRef<HTMLDialogElement>(null)
 
   const id = params.id as string
 
-  const [profile, setProfile]         = useState<any>(null)
-  const [wallet,  setWallet]          = useState<any>(null)
-  const [loading, setLoading]         = useState(true)
-  const [sending, setSending]         = useState(false)
-  const [depositing, setDepositing]   = useState(false)
-  const [depositAmount, setDepositAmount] = useState('')
-  const [lightbox, setLightbox]       = useState<string | null>(null)
+  const [profile, setProfile] = useState<any>(null)
+  const [wallet,  setWallet]  = useState<any>(null)
+  const [loading, setLoading] = useState(true)
+  const [sending, setSending] = useState(false)
+  const [lightbox, setLightbox] = useState<string | null>(null)
 
   const [form, setForm] = useState({
     projectTitle: '', workType: '', description: '',
@@ -81,19 +78,6 @@ export default function KhapeetarDetailPage() {
     if (!session) { router.push('/artist/login'); return }
     Promise.all([loadProfile(), loadWallet()]).finally(() => setLoading(false))
   }, [status, session])
-
-  const deposit = async () => {
-    if (!depositAmount || Number(depositAmount) <= 0) { alert('Enter valid amount'); return }
-    setDepositing(true)
-    const res  = await fetch('/api/wallet/deposit', {
-      method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ amount: Number(depositAmount) }),
-    })
-    const json = await res.json()
-    if (json.success) { setDepositAmount(''); depositDialogRef.current?.close(); await loadWallet() }
-    else alert(json.error || 'Deposit failed')
-    setDepositing(false)
-  }
 
   const sendRequest = async () => {
     if (!form.projectTitle || !form.workType || !form.description || !form.budget) {
@@ -195,10 +179,7 @@ export default function KhapeetarDetailPage() {
             cursor: 'zoom-out', animation: 'kdLightbox 0.2s ease-out',
           }}
         >
-          <img
-            src={lightbox} alt=""
-            style={{ maxWidth: '90vw', maxHeight: '90vh', objectFit: 'contain', borderRadius: 16 }}
-          />
+          <img src={lightbox} alt="" style={{ maxWidth: '90vw', maxHeight: '90vh', objectFit: 'contain', borderRadius: 16 }} />
           <button
             onClick={() => setLightbox(null)}
             style={{
@@ -239,36 +220,30 @@ export default function KhapeetarDetailPage() {
 
               {/* Hero profile card */}
               <div style={{ ...sectionCard, position:'relative', overflow:'hidden' }}>
-                {/* top accent */}
                 <div style={{ position:'absolute', top:0, left:0, right:0, height:3, background:'linear-gradient(90deg,#8b5cf6,#ec4899,#8b5cf6)', backgroundSize:'200% 100%', animation:'kdGradShift 4s ease-in-out infinite' }} />
                 <div style={{ position:'absolute', top:'-10px', left:'20%', right:'20%', height:20, background:'linear-gradient(90deg,transparent,rgba(139,92,246,0.3),rgba(236,72,153,0.3),transparent)', filter:'blur(15px)' }} />
 
                 <div style={{ display:'flex', alignItems:'flex-start', gap:24, flexWrap:'wrap' }}>
-                  {/* Avatar */}
                   <div style={{ position:'relative' }}>
                     <div style={{ position:'absolute', inset:'-4px', background:'linear-gradient(135deg,rgba(139,92,246,0.5),rgba(236,72,153,0.5))', borderRadius:20, filter:'blur(12px)', opacity:0.6 }} />
                     <div style={{ position:'relative', width:80, height:80, borderRadius:20, background:'linear-gradient(135deg,#8b5cf6,#ec4899)', display:'flex', alignItems:'center', justifyContent:'center', boxShadow:'0 8px 32px rgba(139,92,246,0.3)', fontSize:32, fontWeight:800, color:'#fff' }}>
                       {profile?.name?.charAt(0)?.toUpperCase() ?? <User size={30} color="#fff" />}
                     </div>
-                    {/* Availability dot */}
                     <div style={{ position:'absolute', bottom:'-2px', right:'-2px', width:20, height:20, background: avColor.dot, borderRadius:'50%', border:'3px solid #06060a', boxShadow:`0 0 10px ${avColor.dot}80` }} />
                   </div>
 
-                  {/* Info */}
                   <div style={{ flex:1, minWidth:200 }}>
                     <div style={{ display:'flex', alignItems:'center', gap:12, flexWrap:'wrap', marginBottom:8 }}>
                       <h1 style={{ fontSize:28, fontWeight:800, background:'linear-gradient(135deg,#fff 0%,#a1a1aa 100%)', WebkitBackgroundClip:'text', WebkitTextFillColor:'transparent', lineHeight:1.2, margin:0 }}>
                         {profile?.name || 'Khapeetar'}
                       </h1>
                       {profile?.isVerified && <Star size={16} color="#fbbf24" fill="#fbbf24" />}
-                      {/* Availability badge */}
                       <span style={{ padding:'4px 12px', fontSize:10, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.1em', background:avColor.bg, color:avColor.color, border:`1px solid ${avColor.border}`, borderRadius:20, display:'flex', alignItems:'center', gap:5 }}>
                         <span style={{ width:6, height:6, borderRadius:'50%', background:avColor.dot, display:'inline-block', animation:'kdPulseDot 2s ease-in-out infinite' }} />
                         {profile?.availability || 'Available'}
                       </span>
                     </div>
 
-                    {/* Role + Location + Work mode */}
                     <div style={{ display:'flex', gap:8, flexWrap:'wrap', marginBottom:16 }}>
                       {profile?.primaryRole && (
                         <div style={{ display:'flex', alignItems:'center', gap:6, padding:'6px 14px', background:'rgba(139,92,246,0.08)', border:'1px solid rgba(139,92,246,0.15)', borderRadius:10, color:'#c4b5fd', fontSize:13, fontWeight:500 }}>
@@ -287,11 +262,10 @@ export default function KhapeetarDetailPage() {
                       )}
                     </div>
 
-                    {/* Stats row */}
                     <div style={{ display:'flex', gap:28, paddingTop:16, borderTop:'1px solid rgba(255,255,255,0.06)' }}>
                       {[
-                        { value: profile?.experienceYears ? `${profile.experienceYears}y`  : '—', label:'Experience' },
-                        { value: profile?.projectsCompleted ?? '—',                               label:'Projects' },
+                        { value: profile?.experienceYears ? `${profile.experienceYears}y` : '—', label:'Experience' },
+                        { value: profile?.projectsCompleted ?? '—', label:'Projects' },
                         { value: profile?.startingBudget > 0 ? `₹${Number(profile.startingBudget).toLocaleString('en-IN')}` : 'Negotiable', label:'Starting at' },
                       ].map((s, i) => (
                         <div key={i}>
@@ -335,8 +309,7 @@ export default function KhapeetarDetailPage() {
                       <a href={profile.instagram.startsWith('http') ? profile.instagram : `https://instagram.com/${profile.instagram.replace('@','')}`}
                         target="_blank" rel="noreferrer"
                         style={{ display:'flex', alignItems:'center', gap:10, padding:'12px 16px', background:'rgba(255,255,255,0.03)', border:'1px solid rgba(255,255,255,0.07)', borderRadius:12, textDecoration:'none', color:'#f9a8d4', fontSize:14, fontWeight:500 }}>
-                        <Instagram size={16} color="#f9a8d4" />
-                        {profile.instagram}
+                        📸 {profile.instagram}
                         <ExternalLink size={12} style={{ marginLeft:'auto', color:'#52525b' }} />
                       </a>
                     )}
@@ -344,8 +317,7 @@ export default function KhapeetarDetailPage() {
                       <a href={profile.youtube.startsWith('http') ? profile.youtube : `https://${profile.youtube}`}
                         target="_blank" rel="noreferrer"
                         style={{ display:'flex', alignItems:'center', gap:10, padding:'12px 16px', background:'rgba(255,255,255,0.03)', border:'1px solid rgba(255,255,255,0.07)', borderRadius:12, textDecoration:'none', color:'#fca5a5', fontSize:14, fontWeight:500 }}>
-                        <Youtube size={16} color="#fca5a5" />
-                        {profile.youtube}
+                        🎬 {profile.youtube}
                         <ExternalLink size={12} style={{ marginLeft:'auto', color:'#52525b' }} />
                       </a>
                     )}
@@ -371,12 +343,7 @@ export default function KhapeetarDetailPage() {
                       <div
                         key={url}
                         onClick={() => setLightbox(url)}
-                        style={{
-                          position:'relative', overflow:'hidden', borderRadius:14, cursor:'zoom-in',
-                          border:'1px solid rgba(255,255,255,0.07)', background:'#0d0d12',
-                          transition:'all 0.3s ease',
-                          animation:`kdImgReveal 0.4s ease-out ${i * 0.05}s both`,
-                        }}
+                        style={{ position:'relative', overflow:'hidden', borderRadius:14, cursor:'zoom-in', border:'1px solid rgba(255,255,255,0.07)', background:'#0d0d12', transition:'all 0.3s ease', animation:`kdImgReveal 0.4s ease-out ${i * 0.05}s both` }}
                         onMouseEnter={e => { e.currentTarget.style.transform='translateY(-3px) scale(1.02)'; e.currentTarget.style.borderColor='rgba(139,92,246,0.3)'; e.currentTarget.style.boxShadow='0 12px 40px rgba(0,0,0,0.4)' }}
                         onMouseLeave={e => { e.currentTarget.style.transform='translateY(0) scale(1)'; e.currentTarget.style.borderColor='rgba(255,255,255,0.07)'; e.currentTarget.style.boxShadow='none' }}
                       >
@@ -450,13 +417,13 @@ export default function KhapeetarDetailPage() {
                 <p style={{ fontSize:10, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.1em', color:'#3f3f46', margin:'0 0 14px 0' }}>Quick Info</p>
                 <div style={{ display:'flex', flexDirection:'column', gap:10 }}>
                   {[
-                    { label:'Primary Role',   value: profile?.primaryRole },
-                    { label:'Experience',     value: profile?.experienceYears ? `${profile.experienceYears} years` : null },
-                    { label:'Projects Done',  value: profile?.projectsCompleted ? `${profile.projectsCompleted}` : null },
-                    { label:'Starting Budget',value: profile?.startingBudget > 0 ? `₹${Number(profile.startingBudget).toLocaleString('en-IN')}` : 'Negotiable' },
-                    { label:'Work Mode',      value: profile?.workMode },
-                    { label:'Availability',   value: profile?.availability },
-                    { label:'Location',       value: [profile?.city, profile?.state, profile?.country].filter(Boolean).join(', ') || null },
+                    { label:'Primary Role',    value: profile?.primaryRole },
+                    { label:'Experience',      value: profile?.experienceYears ? `${profile.experienceYears} years` : null },
+                    { label:'Projects Done',   value: profile?.projectsCompleted ? `${profile.projectsCompleted}` : null },
+                    { label:'Starting Budget', value: profile?.startingBudget > 0 ? `₹${Number(profile.startingBudget).toLocaleString('en-IN')}` : 'Negotiable' },
+                    { label:'Work Mode',       value: profile?.workMode },
+                    { label:'Availability',    value: profile?.availability },
+                    { label:'Location',        value: [profile?.city, profile?.state, profile?.country].filter(Boolean).join(', ') || null },
                   ].filter(r => r.value).map((row, i) => (
                     <div key={i} style={{ display:'flex', justifyContent:'space-between', alignItems:'center', padding:'8px 0', borderBottom:'1px solid rgba(255,255,255,0.04)' }}>
                       <span style={{ fontSize:12, color:'#52525b', fontWeight:600 }}>{row.label}</span>
@@ -481,13 +448,6 @@ export default function KhapeetarDetailPage() {
                     </p>
                   </div>
                 </div>
-
-                <button
-                  onClick={() => depositDialogRef.current?.showModal()}
-                  onMouseEnter={e => { e.currentTarget.style.background='rgba(255,255,255,0.08)'; e.currentTarget.style.borderColor='rgba(59,130,246,0.4)'; e.currentTarget.style.color='#93c5fd'; e.currentTarget.style.transform='translateY(-1px)' }}
-                  onMouseLeave={e => { e.currentTarget.style.background='rgba(255,255,255,0.04)'; e.currentTarget.style.borderColor='rgba(255,255,255,0.1)'; e.currentTarget.style.color='#a1a1aa'; e.currentTarget.style.transform='translateY(0)' }}
-                  style={{ width:'100%', padding:14, borderRadius:14, background:'rgba(255,255,255,0.04)', border:'1px solid rgba(255,255,255,0.1)', color:'#a1a1aa', fontSize:14, fontWeight:600, cursor:'pointer', transition:'all 0.3s ease', marginBottom:12, fontFamily:'inherit' }}
-                >+ Add Funds</button>
 
                 <button
                   onClick={() => requestDialogRef.current?.showModal()}
@@ -615,11 +575,11 @@ export default function KhapeetarDetailPage() {
 
                 {/* Buttons */}
                 <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:12, paddingTop:8 }}>
-                  <button onClick={() => depositDialogRef.current?.showModal()}
-                    onMouseEnter={e => { e.currentTarget.style.background='rgba(255,255,255,0.08)'; e.currentTarget.style.borderColor='rgba(59,130,246,0.4)'; e.currentTarget.style.color='#93c5fd' }}
-                    onMouseLeave={e => { e.currentTarget.style.background='rgba(255,255,255,0.04)'; e.currentTarget.style.borderColor='rgba(255,255,255,0.1)'; e.currentTarget.style.color='#a1a1aa' }}
+                  <button onClick={() => requestDialogRef.current?.close()}
+                    onMouseEnter={e => { e.currentTarget.style.background='rgba(255,255,255,0.08)'; e.currentTarget.style.color='#fff' }}
+                    onMouseLeave={e => { e.currentTarget.style.background='rgba(255,255,255,0.04)'; e.currentTarget.style.color='#a1a1aa' }}
                     style={{ padding:16, borderRadius:14, background:'rgba(255,255,255,0.04)', border:'1px solid rgba(255,255,255,0.1)', color:'#a1a1aa', fontSize:14, fontWeight:600, cursor:'pointer', transition:'all 0.3s ease', fontFamily:'inherit' }}>
-                    + Add Funds
+                    Cancel
                   </button>
                   <button onClick={sendRequest} disabled={sending || insufficient}
                     onMouseEnter={e => { if (!sending && !insufficient) { e.currentTarget.style.transform='translateY(-1px)'; e.currentTarget.style.boxShadow='0 6px 30px rgba(139,92,246,0.4)' } }}
@@ -628,64 +588,6 @@ export default function KhapeetarDetailPage() {
                     {sending ? '⏳ Sending...' : '🚀 Send Request'}
                   </button>
                 </div>
-              </div>
-            </div>
-          </div>
-        </dialog>
-
-        {/* ── DEPOSIT MODAL ─────────────────────────────────────── */}
-        <dialog ref={depositDialogRef} style={{ width:460, maxWidth:'95vw', borderRadius:24, overflow:'hidden', boxShadow:'0 25px 80px rgba(0,0,0,0.6)' }}>
-          <div style={{ background:'#0f0f14', border:'1px solid rgba(255,255,255,0.08)', borderRadius:24, overflow:'hidden' }}>
-            <div style={{ padding:'24px 28px', borderBottom:'1px solid rgba(255,255,255,0.06)', display:'flex', alignItems:'center', justifyContent:'space-between', background:'linear-gradient(180deg,rgba(255,255,255,0.03) 0%,transparent 100%)' }}>
-              <div style={{ display:'flex', alignItems:'center', gap:14 }}>
-                <div style={{ width:40, height:40, borderRadius:12, background:'rgba(59,130,246,0.1)', border:'1px solid rgba(59,130,246,0.2)', display:'flex', alignItems:'center', justifyContent:'center', fontSize:18 }}>💰</div>
-                <div>
-                  <h2 style={{ fontSize:18, fontWeight:700, color:'#fff', margin:0 }}>Add Funds</h2>
-                  <p style={{ fontSize:12, color:'#52525b', margin:'2px 0 0 0' }}>Deposit money to your wallet</p>
-                </div>
-              </div>
-              <button onClick={() => depositDialogRef.current?.close()}
-                onMouseEnter={e => { e.currentTarget.style.background='rgba(255,255,255,0.1)'; e.currentTarget.style.color='#fff' }}
-                onMouseLeave={e => { e.currentTarget.style.background='rgba(255,255,255,0.05)'; e.currentTarget.style.color='#71717a' }}
-                style={{ width:36, height:36, borderRadius:10, background:'rgba(255,255,255,0.05)', border:'1px solid rgba(255,255,255,0.08)', color:'#71717a', fontSize:18, cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', transition:'all 0.2s ease', fontFamily:'inherit' }}>✕</button>
-            </div>
-
-            <div style={{ padding:28 }}>
-              <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', background:'rgba(255,255,255,0.03)', border:'1px solid rgba(255,255,255,0.06)', borderRadius:14, padding:'14px 18px', marginBottom:24 }}>
-                <span style={{ fontSize:13, color:'#52525b', fontWeight:500 }}>Current Balance</span>
-                <span style={{ fontSize:15, fontWeight:800, color:'#34d399' }}>₹{walletBalance.toLocaleString('en-IN')}</span>
-              </div>
-
-              <label style={{ display:'block', fontSize:11, fontWeight:600, textTransform:'uppercase', letterSpacing:'0.08em', color:'#71717a', marginBottom:8 }}>Amount (₹)</label>
-              <input type="number" placeholder="0" value={depositAmount} onChange={e => setDepositAmount(e.target.value)}
-                style={{ ...inputStyle, fontSize:20, fontWeight:800, padding:'16px 18px', marginBottom:16 }}
-                onFocus={e => { e.currentTarget.style.borderColor='rgba(59,130,246,0.5)'; e.currentTarget.style.boxShadow='0 0 0 3px rgba(59,130,246,0.1)' }}
-                onBlur={e => { e.currentTarget.style.borderColor='rgba(255,255,255,0.08)'; e.currentTarget.style.boxShadow='none' }} />
-
-              <div style={{ display:'grid', gridTemplateColumns:'repeat(4,1fr)', gap:8, marginBottom:24 }}>
-                {[500, 1000, 2000, 5000].map(amt => (
-                  <button key={amt} onClick={() => setDepositAmount(String(amt))}
-                    onMouseEnter={e => { e.currentTarget.style.background='rgba(255,255,255,0.08)'; e.currentTarget.style.color='#fff' }}
-                    onMouseLeave={e => { e.currentTarget.style.background='rgba(255,255,255,0.03)'; e.currentTarget.style.color='#71717a' }}
-                    style={{ padding:10, borderRadius:10, background:'rgba(255,255,255,0.03)', border:'1px solid rgba(255,255,255,0.06)', color:'#71717a', fontSize:12, fontWeight:600, cursor:'pointer', transition:'all 0.2s ease', fontFamily:'inherit' }}>
-                    ₹{amt.toLocaleString('en-IN')}
-                  </button>
-                ))}
-              </div>
-
-              <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:12 }}>
-                <button onClick={() => depositDialogRef.current?.close()}
-                  onMouseEnter={e => { e.currentTarget.style.background='rgba(255,255,255,0.08)'; e.currentTarget.style.color='#fff' }}
-                  onMouseLeave={e => { e.currentTarget.style.background='rgba(255,255,255,0.04)'; e.currentTarget.style.color='#a1a1aa' }}
-                  style={{ padding:16, borderRadius:14, background:'rgba(255,255,255,0.04)', border:'1px solid rgba(255,255,255,0.1)', color:'#a1a1aa', fontSize:14, fontWeight:600, cursor:'pointer', transition:'all 0.2s ease', fontFamily:'inherit' }}>
-                  Cancel
-                </button>
-                <button onClick={deposit} disabled={depositing}
-                  onMouseEnter={e => { if (!depositing) { e.currentTarget.style.transform='translateY(-1px)'; e.currentTarget.style.boxShadow='0 6px 30px rgba(59,130,246,0.4)' } }}
-                  onMouseLeave={e => { e.currentTarget.style.transform='translateY(0)'; e.currentTarget.style.boxShadow='0 2px 16px rgba(59,130,246,0.2)' }}
-                  style={{ padding:16, borderRadius:14, background:depositing ? '#27272a' : 'linear-gradient(135deg,#2563eb,#0891b2)', border:'none', color:depositing ? '#52525b' : '#fff', fontSize:14, fontWeight:700, cursor:depositing ? 'not-allowed' : 'pointer', transition:'all 0.3s ease', fontFamily:'inherit', boxShadow:depositing ? 'none' : '0 2px 16px rgba(59,130,246,0.2)' }}>
-                  {depositing ? '⏳ Processing...' : '💰 Deposit'}
-                </button>
               </div>
             </div>
           </div>

@@ -30,6 +30,7 @@ const navItems = [
   { icon: Music,           label: 'Campaigns',     href: '/admin/campaigns' },  // ← ADD THIS LINE
   { icon: Wallet, label: 'Deposits', href: '/admin/deposits' },
   { icon: ArrowUpRight, label: 'Withdrawals', href: '/admin/withdrawals' },
+  { icon: Wallet, label: 'Wallet', href: '/admin/wallet' },
 ]
 
 interface Props {

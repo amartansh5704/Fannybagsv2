@@ -101,6 +101,10 @@ export default function LandingPage() {
     document.getElementById('how-it-works')?.scrollIntoView({ behavior: 'smooth' })
   }
 
+  const scrollToContact = () => {
+    document.getElementById('contact-us')?.scrollIntoView({ behavior: 'smooth' })
+  }
+
   return (
     <>
       <style>{`
@@ -240,7 +244,8 @@ export default function LandingPage() {
             <li><a onClick={() => router.push('/fan/signup')}>Discover</a></li>
             <li><a onClick={() => router.push('/khapeetar/signup')}>Marketplace</a></li>
             <li><a onClick={scrollToHIW}>How it works</a></li>
-            <li><a href="#">Careers</a></li>
+            <li><a onClick={scrollToContact}>Contact</a></li>
+            <li><a onClick={() => router.push('/artist/signup')}>Career</a></li>
           </ul>
           <div className="fb-nav-right">
             <button className="fb-btn-nav fb-btn-ghost" onClick={scrollToCards}>Log in</button>
@@ -344,6 +349,47 @@ export default function LandingPage() {
                 <div className="fb-hiw-desc">{step.desc}</div>
               </div>
             ))}
+          </div>
+        </div>
+
+                {/* Contact Us */}
+        <div className="fb-hiw-wrap" id="contact-us" style={{ paddingBottom: 80 }}>
+          <div className="fb-sec-top fb-reveal">
+            <div>
+              <div className="fb-sec-num">03 — Get in touch</div>
+              <div className="fb-sec-title">Contact Us</div>
+            </div>
+            <div className="fb-sec-sub">We'd love to hear from you.</div>
+          </div>
+
+          <div className="fb-reveal" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, maxWidth: 600 }}>
+            {/* Email */}
+            <div className="fb-hiw-card" style={{ cursor: 'default' }}>
+              <span className="fb-hiw-emoji">✉️</span>
+              <div className="fb-hiw-title">Email</div>
+              <a
+                href="mailto:amarchaudhary5704@gmail.com"
+                style={{ fontSize: 13, color: '#888', fontWeight: 400, textDecoration: 'none', wordBreak: 'break-all', transition: 'color 0.2s' }}
+                onMouseEnter={e => (e.currentTarget.style.color = '#ccc')}
+                onMouseLeave={e => (e.currentTarget.style.color = '#888')}
+              >
+                amarchaudhary5704@gmail.com
+              </a>
+            </div>
+
+            {/* Phone */}
+            <div className="fb-hiw-card" style={{ cursor: 'default' }}>
+              <span className="fb-hiw-emoji">📞</span>
+              <div className="fb-hiw-title">Phone</div>
+              <a
+                href="tel:+918448621626"
+                style={{ fontSize: 13, color: '#888', fontWeight: 400, textDecoration: 'none', transition: 'color 0.2s' }}
+                onMouseEnter={e => (e.currentTarget.style.color = '#ccc')}
+                onMouseLeave={e => (e.currentTarget.style.color = '#888')}
+              >
+                +91 8448621626
+              </a>
+            </div>
           </div>
         </div>
 

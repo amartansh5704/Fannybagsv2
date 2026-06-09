@@ -14,7 +14,7 @@ export async function POST(
     }
 
     const { id } = await params
-    const body = await req.json()
+    const body   = await req.json()
 
     const revenueAmount = Number(body.revenueAmount)
     const spotifyStreams = Number(body.spotifyStreams ?? 0)
@@ -45,7 +45,6 @@ export async function POST(
     if (!song) {
       return NextResponse.json({ success: false, error: 'Song not found' }, { status: 404 })
     }
-
     if (!song.campaign) {
       return NextResponse.json(
         { success: false, error: 'Song has no campaign — cannot distribute royalties' },
@@ -55,46 +54,59 @@ export async function POST(
 
     const campaign = song.campaign
 
-    // ── Check admin wallet has enough to distribute ──────────────────────────
+    // ── Only active investments count ────────────────────────────────────────
+    const activeInvestments = campaign.investments.filter(inv => inv.status === 'active')
+
+    // ── Check admin wallet balance ───────────────────────────────────────────
     const adminWallet = await getOrCreateWallet(user.id)
     if (adminWallet.balance < revenueAmount) {
       return NextResponse.json(
-        { success: false, error: `Admin wallet balance (₹${adminWallet.balance.toLocaleString('en-IN')}) is insufficient for this distribution` },
+        {
+          success: false,
+          error: `Admin wallet balance (₹${adminWallet.balance.toLocaleString('en-IN')}) is insufficient for this distribution`,
+        },
         { status: 400 }
       )
     }
 
-    // ── Calculate splits ─────────────────────────────────────────────────────
-    // fanRevenueShare is stored as a percentage e.g. 30 means 30%
-    const fanSharePct    = campaign.fanRevenueShare / 100
-    const artistSharePct = 1 - fanSharePct
+    // ── Calculate fan payouts proportionally ─────────────────────────────────
+    //
+    // Each fan's ownershipPct = their share of TOTAL revenue (not just fan pool)
+    // e.g. fan invested ₹500 into a ₹10,000 campaign with 30% fan share
+    //      → ownershipPct = (500/10000) * 30 = 1.5%
+    //      → they get 1.5% of every future revenue distribution
+    //
+    // If no active fan investors → 100% goes to artist
+    // Artist gets remainder = 100% - sum(fan ownershipPct)
 
-    const totalFanPool    = Math.round(revenueAmount * fanSharePct * 100) / 100
-    const totalArtistCut  = Math.round((revenueAmount - totalFanPool) * 100) / 100
-
-    // ── Build fan payout map ─────────────────────────────────────────────────
-    // Each fan's payout = their ownershipPct / fanSharePct * revenueAmount
-    // ownershipPct is already their share of the total revenue
-    // e.g. ownershipPct = 6 means they get 6% of all revenue
     const fanPayouts: { userId: string; amount: number; ownershipPct: number }[] = []
+    let totalFanPct = 0
 
-    for (const inv of campaign.investments) {
-      if (inv.status !== 'active') continue
-      // ownershipPct is e.g. 6 (meaning 6% of total revenue)
+    for (const inv of activeInvestments) {
       const fanCut = Math.round(revenueAmount * (inv.ownershipPct / 100) * 100) / 100
       if (fanCut > 0) {
         fanPayouts.push({
-          userId:      inv.fanId,
-          amount:      fanCut,
+          userId:       inv.fanId,
+          amount:       fanCut,
           ownershipPct: inv.ownershipPct,
         })
+        totalFanPct += inv.ownershipPct
       }
     }
 
-    // ── Run everything atomically ────────────────────────────────────────────
+    // Artist gets whatever % is not claimed by fans (100% if no fans)
+    const artistPct   = Math.max(0, 100 - totalFanPct)
+    const totalFanCut = Math.round(revenueAmount * (totalFanPct / 100) * 100) / 100
+    const artistCut   = Math.round(revenueAmount * (artistPct  / 100) * 100) / 100
+
+    // Rounding safety — give remainder to artist
+    const diff           = revenueAmount - (totalFanCut + artistCut)
+    const finalArtistCut = Math.round((artistCut + diff) * 100) / 100
+
+    // ── Run everything in one atomic transaction ──────────────────────────────
     const distribution = await prisma.$transaction(async (tx) => {
 
-      // 1. Debit admin wallet (royalty pool → distribution)
+      // 1. Debit admin wallet
       await debitWallet(
         user.id,
         revenueAmount,
@@ -108,21 +120,21 @@ export async function POST(
       // 2. Credit artist
       await creditWallet(
         song.artistId,
-        totalArtistCut,
+        finalArtistCut,
         'royalty_artist_credit',
-        `Royalty payout (${Math.round(artistSharePct * 100)}%) for "${song.title}"`,
+        `Royalty payout (${artistPct.toFixed(2)}% of revenue) for "${song.title}"`,
         id,
         'song',
         tx as any
       )
 
-      // 3. Credit each fan proportionally
+      // 3. Credit each fan proportionally (skipped if no fans)
       for (const fp of fanPayouts) {
         await creditWallet(
           fp.userId,
           fp.amount,
           'royalty_fan_credit',
-          `Royalty payout for "${song.title}"`,
+          `Royalty payout (${fp.ownershipPct.toFixed(2)}% of revenue) for "${song.title}"`,
           id,
           'song',
           tx as any
@@ -140,16 +152,14 @@ export async function POST(
           distributedById: user.id,
           payouts: {
             create: [
-              // Artist payout
               {
-                userId:      song.artistId,
-                amount:      totalArtistCut,
-                ownershipPct: Math.round(artistSharePct * 100),
+                userId:       song.artistId,
+                amount:       finalArtistCut,
+                ownershipPct: Number(artistPct.toFixed(2)),
               },
-              // Fan payouts
               ...fanPayouts.map(fp => ({
-                userId:      fp.userId,
-                amount:      fp.amount,
+                userId:       fp.userId,
+                amount:       fp.amount,
                 ownershipPct: fp.ownershipPct,
               })),
             ],
@@ -158,28 +168,26 @@ export async function POST(
       })
 
       // 5. Update SongMetrics
-      if (song.campaign) {
-        await (tx as any).songMetrics.upsert({
-          where: { songId: id },
-          update: {
-            totalRevenue:    { increment: revenueAmount },
-            monthlyRevenue:  revenueAmount,
-            totalStreams:    { increment: spotifyStreams + youtubeStreams + appleStreams },
-            monthlyStreams:  spotifyStreams + youtubeStreams + appleStreams,
-            artistEarnings:  { increment: totalArtistCut },
-            fanPayoutsTotal: { increment: totalFanPool },
-          },
-          create: {
-            songId:          id,
-            totalRevenue:    revenueAmount,
-            monthlyRevenue:  revenueAmount,
-            totalStreams:    spotifyStreams + youtubeStreams + appleStreams,
-            monthlyStreams:  spotifyStreams + youtubeStreams + appleStreams,
-            artistEarnings:  totalArtistCut,
-            fanPayoutsTotal: totalFanPool,
-          },
-        })
-      }
+      await (tx as any).songMetrics.upsert({
+        where: { songId: id },
+        update: {
+          totalRevenue:    { increment: revenueAmount },
+          monthlyRevenue:  revenueAmount,
+          totalStreams:    { increment: spotifyStreams + youtubeStreams + appleStreams },
+          monthlyStreams:  spotifyStreams + youtubeStreams + appleStreams,
+          artistEarnings:  { increment: finalArtistCut },
+          fanPayoutsTotal: { increment: totalFanCut },
+        },
+        create: {
+          songId:          id,
+          totalRevenue:    revenueAmount,
+          monthlyRevenue:  revenueAmount,
+          totalStreams:    spotifyStreams + youtubeStreams + appleStreams,
+          monthlyStreams:  spotifyStreams + youtubeStreams + appleStreams,
+          artistEarnings:  finalArtistCut,
+          fanPayoutsTotal: totalFanCut,
+        },
+      })
 
       return dist
     })
@@ -187,13 +195,21 @@ export async function POST(
     return NextResponse.json({
       success: true,
       data: distribution,
-      message: `Distributed ₹${revenueAmount.toLocaleString('en-IN')} — Artist: ₹${totalArtistCut.toLocaleString('en-IN')}, Fans: ₹${totalFanPool.toLocaleString('en-IN')} across ${fanPayouts.length} investor(s)`,
+      message: fanPayouts.length > 0
+        ? `Distributed ₹${revenueAmount.toLocaleString('en-IN')} — Artist: ₹${finalArtistCut.toLocaleString('en-IN')} (${artistPct.toFixed(2)}%), Fans: ₹${totalFanCut.toLocaleString('en-IN')} across ${fanPayouts.length} investor(s)`
+        : `Distributed ₹${revenueAmount.toLocaleString('en-IN')} — 100% to artist (no active fan investors)`,
     })
+
   } catch (err: any) {
     console.error('[POST /api/admin/songs/[id]/distribute]', err)
     const isInsufficient = err?.message?.includes('INSUFFICIENT_FUNDS')
     return NextResponse.json(
-      { success: false, error: isInsufficient ? 'Admin wallet has insufficient balance' : 'Distribution failed' },
+      {
+        success: false,
+        error: isInsufficient
+          ? 'Admin wallet has insufficient balance'
+          : 'Distribution failed',
+      },
       { status: isInsufficient ? 400 : 500 }
     )
   }
