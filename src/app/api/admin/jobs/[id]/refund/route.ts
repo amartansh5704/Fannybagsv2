@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { getAuthenticatedUser } from '@/lib/auth-helpers'
-import { debitWallet, creditWallet } from '@/lib/wallet'
+import { creditWallet } from '@/lib/wallet'
 
 export async function POST(
   _req: NextRequest,
@@ -17,19 +17,44 @@ export async function POST(
     const job = await prisma.job.findUnique({ where: { id: jobId } })
 
     if (!job)              return NextResponse.json({ success: false, error: 'Job not found' }, { status: 404 })
+    if (!job.escrowAmount) return NextResponse.json({ success: false, error: 'No escrow amount' }, { status: 400 })
 
+    const refundAmount = job.escrowAmount
+
+    // Credit artist directly — admin wallet not touched
+    await creditWallet(
+      job.artistId,
+      refundAmount,
+      'job_refund',
+      `Full refund for job: ${job.title}`,
+      jobId,
+      'job',
+    )
 
     await prisma.$transaction(async (tx) => {
-      await debitWallet(user.id, job.escrowAmount!, 'job_escrow_refund', `Escrow refunded for job: ${job.title}`, jobId, 'job', tx as any)
-      await creditWallet(job.artistId, job.escrowAmount!, 'job_refund', `Refund for job: ${job.title}`, jobId, 'job', tx as any)
-      await (tx as any).job.update({ where: { id: jobId }, data: { status: 'refunded' } })
+      await (tx as any).job.update({
+        where: { id: jobId },
+        data:  { status: 'refunded' },
+      })
 
       await (tx as any).notification.create({
-        data: { userId: job.artistId, type: 'escrow_refunded', title: 'Escrow refunded', body: `₹${job.escrowAmount?.toLocaleString('en-IN')} has been refunded for "${job.title}"` },
+        data: {
+          userId: job.artistId,
+          type:   'escrow_refunded',
+          title:  'Escrow Refunded ↩',
+          body:   `₹${refundAmount.toLocaleString('en-IN')} has been refunded for "${job.title}"`,
+        },
       })
+    }, {
+      timeout: 15000,
+      maxWait:  5000,
     })
 
-    return NextResponse.json({ success: true, message: `Refunded ₹${job.escrowAmount?.toLocaleString('en-IN')} to artist` })
+    return NextResponse.json({
+      success: true,
+      message: `Refunded ₹${refundAmount.toLocaleString('en-IN')} (100%) to artist`,
+    })
+
   } catch (err) {
     console.error('[POST /api/admin/jobs/[id]/refund]', err)
     return NextResponse.json({ success: false, error: 'Refund failed' }, { status: 500 })

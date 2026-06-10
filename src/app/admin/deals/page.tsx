@@ -331,7 +331,7 @@ export default function AdminDealsPage() {
                           ))}
                         </div>
 
-                        {deal.status === 'active' && (
+                        {(deal.status === 'active' || deal.status === 'completed') && (
                           <div style={{ display:'flex', gap:12, flexWrap:'wrap', alignItems:'center', position:'relative' }}>
                             <button onClick={() => handleDealAction(deal.id, 'release_funds')} disabled={isReleasing}
                               onMouseEnter={() => setHoveredBtn(`release-${deal.id}`)}

@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { getAuthenticatedUser } from '@/lib/auth-helpers'
-import { debitWallet, creditWallet, getOrCreateWallet } from '@/lib/wallet'
+import { debitWallet, getOrCreateWallet } from '@/lib/wallet'
 
 export async function POST(
   req: NextRequest,
@@ -16,22 +16,22 @@ export async function POST(
     const { id: jobId } = await params
     const { proposalId } = await req.json()
 
-    // ── Fetch job + proposal ─────────────────────────────────────────────────
+    // ── Fetch job + proposal ──────────────────────────────────────────────────
     const job = await prisma.job.findUnique({
       where: { id: jobId },
       include: { proposals: true },
     })
-    if (!job)                   return NextResponse.json({ success: false, error: 'Job not found' }, { status: 404 })
+    if (!job)                     return NextResponse.json({ success: false, error: 'Job not found' }, { status: 404 })
     if (job.artistId !== user.id) return NextResponse.json({ success: false, error: 'Forbidden' }, { status: 403 })
-    if (job.status !== 'open')  return NextResponse.json({ success: false, error: 'Job is no longer open' }, { status: 400 })
+    if (job.status !== 'open')    return NextResponse.json({ success: false, error: 'Job is no longer open' }, { status: 400 })
 
     const proposal = job.proposals.find(p => p.id === proposalId)
-    if (!proposal) return NextResponse.json({ success: false, error: 'Proposal not found' }, { status: 404 })
+    if (!proposal)                     return NextResponse.json({ success: false, error: 'Proposal not found' }, { status: 404 })
     if (proposal.status !== 'pending') return NextResponse.json({ success: false, error: 'Proposal already processed' }, { status: 400 })
 
     const escrowAmount = proposal.bidAmount
 
-    // ── Check artist wallet balance ──────────────────────────────────────────
+    // ── Check artist wallet balance ───────────────────────────────────────────
     const artistWallet = await getOrCreateWallet(user.id)
     if (artistWallet.balance < escrowAmount) {
       return NextResponse.json({
@@ -40,48 +40,33 @@ export async function POST(
       }, { status: 400 })
     }
 
-    // ── Get admin user ───────────────────────────────────────────────────────
-    const admin = await prisma.user.findFirst({ where: { role: 'admin' } })
-    if (!admin) return NextResponse.json({ success: false, error: 'Admin not found' }, { status: 500 })
+    // ── Wallet operations OUTSIDE transaction to avoid P2028 timeout ──────────
+    // Only debit artist — admin wallet is credited only on release, not on escrow lock
+    await debitWallet(
+      user.id,
+      escrowAmount,
+      'job_escrow_hold',
+      `Escrow held for job: ${job.title}`,
+      jobId,
+      'job',
+    )
 
-    // ── Run atomically ───────────────────────────────────────────────────────
+    // ── Run DB operations in transaction (fast — no external calls) ───────────
     const result = await prisma.$transaction(async (tx) => {
 
-      // 1. Debit artist wallet → escrow (admin wallet)
-      await debitWallet(
-        user.id,
-        escrowAmount,
-        'job_escrow_hold',
-        `Escrow held for job: ${job.title}`,
-        jobId,
-        'job',
-        tx as any
-      )
-
-      // 2. Credit admin wallet as escrow
-      await creditWallet(
-        admin.id,
-        escrowAmount,
-        'job_escrow_received',
-        `Escrow received for job: ${job.title}`,
-        jobId,
-        'job',
-        tx as any
-      )
-
-      // 3. Accept the proposal
+      // 1. Accept the proposal
       await (tx as any).jobProposal.update({
         where: { id: proposalId },
         data:  { status: 'accepted' },
       })
 
-      // 4. Reject all other proposals
+      // 2. Reject all other proposals
       await (tx as any).jobProposal.updateMany({
         where: { jobId, id: { not: proposalId }, status: 'pending' },
         data:  { status: 'rejected' },
       })
 
-      // 5. Update job status to assigned
+      // 3. Update job status to assigned
       const updatedJob = await (tx as any).job.update({
         where: { id: jobId },
         data: {
@@ -92,12 +77,12 @@ export async function POST(
         },
       })
 
-      // 6. Create a chat room for this job
+      // 4. Create a chat room for this job
       const chatRoom = await (tx as any).jobChatRoom.create({
         data: { jobId },
       })
 
-      // 7. Notify khapeetar via notification table
+      // 5. Notify khapeetar
       await (tx as any).notification.create({
         data: {
           userId: proposal.khapeetarId,
@@ -108,6 +93,10 @@ export async function POST(
       })
 
       return { updatedJob, chatRoom }
+
+    }, {
+      timeout: 15000,
+      maxWait:  5000,
     })
 
     return NextResponse.json({

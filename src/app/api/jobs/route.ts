@@ -15,7 +15,34 @@ export async function GET() {
       orderBy: { createdAt: 'desc' },
     })
 
-    return NextResponse.json({ success: true, data: jobs })
+    // ── Fetch khapeetar profiles for assigned jobs ────────────────────────────
+    // khapeetarId on Job is a userId — we look up KhapeetarProfile by userId
+    const khapeetarUserIds = jobs
+      .filter(j => j.khapeetarId)
+      .map(j => j.khapeetarId as string)
+
+    const khapeetarProfiles = khapeetarUserIds.length > 0
+      ? await prisma.khapeetarProfile.findMany({
+          where: { userId: { in: khapeetarUserIds } },
+          select: { id: true, name: true, userId: true },
+        })
+      : []
+
+    // Build a map of userId → profile for O(1) lookup
+    const profileByUserId = Object.fromEntries(
+      khapeetarProfiles.map(p => [p.userId, p])
+    )
+
+    // Attach khapeetarProfile to each job
+    const jobsWithProfile = jobs.map(job => ({
+      ...job,
+      khapeetarProfile: job.khapeetarId
+        ? (profileByUserId[job.khapeetarId] ?? null)
+        : null,
+    }))
+
+    return NextResponse.json({ success: true, data: jobsWithProfile })
+
   } catch (err) {
     console.error('[GET /api/jobs]', err)
     return NextResponse.json({ success: false, error: 'Fetch failed' }, { status: 500 })
@@ -52,6 +79,7 @@ export async function POST(req: NextRequest) {
     })
 
     return NextResponse.json({ success: true, data: job }, { status: 201 })
+
   } catch (err) {
     console.error('[POST /api/jobs]', err)
     return NextResponse.json({ success: false, error: 'Failed to create job' }, { status: 500 })

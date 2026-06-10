@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { getAuthenticatedUser } from '@/lib/auth-helpers'
+import { creditWallet } from '@/lib/wallet'
 
 export async function POST(
   _req: Request,
@@ -30,23 +31,11 @@ export async function POST(
       )
     }
 
-    // ── Narrow the type so TypeScript knows campaign is non-null ─────────────
     const campaign = song.campaign
 
     if (campaign.fundsReleased) {
       return NextResponse.json(
         { success: false, error: 'Funds already released' },
-        { status: 400 }
-      )
-    }
-
-    const adminWallet = await prisma.wallet.findUnique({
-      where: { userId: user.id },
-    })
-
-    if (!adminWallet) {
-      return NextResponse.json(
-        { success: false, error: 'Admin wallet missing' },
         { status: 400 }
       )
     }
@@ -60,61 +49,43 @@ export async function POST(
       )
     }
 
-    if (adminWallet.balance < totalRaised) {
-      return NextResponse.json(
-        { success: false, error: 'Admin wallet insufficient' },
-        { status: 400 }
-      )
-    }
-
     const adminFee     = totalRaised * 0.05
     const artistPayout = totalRaised * 0.95
 
-    const artistWallet = await prisma.wallet.upsert({
-      where:  { userId: song.artistId },
-      update: {},
-      create: { userId: song.artistId },
-    })
+    // Credit artist directly — admin wallet not touched
+    await creditWallet(
+      song.artistId,
+      artistPayout,
+      'campaign_artist_credit',
+      `Campaign payout (95%) for "${song.title}"`,
+      campaign.id,
+      'campaign',
+    )
+
+    // Record platform fee and release as info-only on admin wallet
+    const adminWallet = await prisma.wallet.findUnique({ where: { userId: user.id } })
 
     await prisma.$transaction(async (tx) => {
-      await tx.wallet.update({
-        where: { id: adminWallet.id },
-        data:  { balance: { decrement: artistPayout } },
-      })
-
-      await tx.wallet.update({
-        where: { id: artistWallet.id },
-        data: {
-          balance:       { increment: artistPayout },
-          totalReceived: { increment: artistPayout },
-        },
-      })
-
-      await tx.walletTransaction.createMany({
-        data: [
-          {
-            walletId:      adminWallet.id,
-            type:          'campaign_platform_fee',
-            amount:        adminFee,
-            referenceId:   campaign.id,
-            referenceType: 'campaign',
-          },
-          {
-            walletId:      adminWallet.id,
-            type:          'campaign_funds_release',
-            amount:        artistPayout,
-            referenceId:   campaign.id,
-            referenceType: 'campaign',
-          },
-          {
-            walletId:      artistWallet.id,
-            type:          'campaign_artist_credit',
-            amount:        artistPayout,
-            referenceId:   campaign.id,
-            referenceType: 'campaign',
-          },
-        ],
-      })
+      if (adminWallet) {
+        await tx.walletTransaction.createMany({
+          data: [
+            {
+              walletId:      adminWallet.id,
+              type:          'campaign_platform_fee',
+              amount:        adminFee,
+              referenceId:   campaign.id,
+              referenceType: 'campaign',
+            },
+            {
+              walletId:      adminWallet.id,
+              type:          'campaign_funds_release',
+              amount:        artistPayout,
+              referenceId:   campaign.id,
+              referenceType: 'campaign',
+            },
+          ],
+        })
+      }
 
       await tx.campaign.update({
         where: { id: campaign.id },

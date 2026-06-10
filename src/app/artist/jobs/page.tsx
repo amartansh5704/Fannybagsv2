@@ -4,27 +4,30 @@ import { useEffect, useState } from 'react'
 import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 import ArtistLayout from '@/components/artist/ArtistLayout'
-import { Loader2, Plus, Briefcase, Clock, Users, ChevronRight } from 'lucide-react'
+import { Loader2, Plus, Briefcase, Clock, Users, ChevronRight, ExternalLink } from 'lucide-react'
 import Link from 'next/link'
 
 const STATUS_STYLE: Record<string, { color: string; bg: string; border: string; label: string }> = {
-  open:     { color: '#34d399', bg: 'rgba(16,185,129,0.1)',  border: 'rgba(16,185,129,0.2)',  label: 'Open' },
-  closed:   { color: '#f87171', bg: 'rgba(239,68,68,0.1)',   border: 'rgba(239,68,68,0.2)',   label: 'Closed' },
-  assigned: { color: '#fbbf24', bg: 'rgba(245,158,11,0.1)',  border: 'rgba(245,158,11,0.2)',  label: 'Assigned' },
+  open:      { color:'#34d399', bg:'rgba(16,185,129,0.1)',  border:'rgba(16,185,129,0.2)',  label:'Open'     },
+  closed:    { color:'#f87171', bg:'rgba(239,68,68,0.1)',   border:'rgba(239,68,68,0.2)',   label:'Closed'   },
+  assigned:  { color:'#fbbf24', bg:'rgba(245,158,11,0.1)',  border:'rgba(245,158,11,0.2)',  label:'Assigned' },
+  completed: { color:'#a78bfa', bg:'rgba(139,92,246,0.1)',  border:'rgba(139,92,246,0.2)',  label:'Completed'},
+  paid:      { color:'#34d399', bg:'rgba(16,185,129,0.1)',  border:'rgba(16,185,129,0.2)',  label:'Paid'     },
+  refunded:  { color:'#f87171', bg:'rgba(239,68,68,0.1)',   border:'rgba(239,68,68,0.2)',   label:'Refunded' },
 }
 
 export default function ArtistJobsPage() {
   const { data: session, status } = useSession()
   const router = useRouter()
 
-  const [jobs, setJobs]       = useState<any[]>([])
-  const [loading, setLoading] = useState(true)
-  const [hoveredJob, setHoveredJob] = useState<string | null>(null)
+  const [jobs, setJobs]           = useState<any[]>([])
+  const [loading, setLoading]     = useState(true)
+  const [hoveredJob, setHoveredJob]   = useState<string | null>(null)
+  const [hoveredKhap, setHoveredKhap] = useState<string | null>(null)
 
   useEffect(() => {
     if (status === 'loading') return
     if (!session) { router.push('/artist/login'); return }
-
     fetch('/api/jobs')
       .then(r => r.json())
       .then(j => { if (j.success) setJobs(j.data) })
@@ -65,7 +68,6 @@ export default function ArtistJobsPage() {
                 <p style={{ fontSize:13, color:'#52525b', margin:'2px 0 0 0', fontWeight:500 }}>Manage your posted jobs</p>
               </div>
             </div>
-
             <Link href="/artist/jobs/new"
               style={{ display:'flex', alignItems:'center', gap:8, padding:'11px 20px', background:'linear-gradient(135deg,#7c3aed,#db2777)', border:'none', borderRadius:14, color:'#fff', fontSize:14, fontWeight:700, cursor:'pointer', textDecoration:'none', boxShadow:'0 4px 20px rgba(124,58,237,0.3)' }}>
               <Plus size={16} /> Post a Job
@@ -74,7 +76,6 @@ export default function ArtistJobsPage() {
         </div>
 
         <div style={{ maxWidth:1100, margin:'0 auto', padding:'28px 32px 60px' }}>
-
           {jobs.length === 0 ? (
             <div style={{ display:'flex', flexDirection:'column', alignItems:'center', padding:'80px 0', gap:14 }}>
               <div style={{ width:72, height:72, borderRadius:20, background:'rgba(255,255,255,0.03)', border:'1px solid rgba(255,255,255,0.06)', display:'flex', alignItems:'center', justifyContent:'center', fontSize:32 }}>📋</div>
@@ -88,10 +89,16 @@ export default function ArtistJobsPage() {
           ) : (
             <div style={{ display:'flex', flexDirection:'column', gap:12 }}>
               {jobs.map((job, idx) => {
-                const s   = STATUS_STYLE[job.status] ?? STATUS_STYLE.open
-                const isH = hoveredJob === job.id
+                const s       = STATUS_STYLE[job.status] ?? STATUS_STYLE.open
+                const isH     = hoveredJob  === job.id
+                const isKhapH = hoveredKhap === job.id
+
+                // khapeetar profile id comes from the included relation
+                const khapeetarProfileId = job.khapeetarProfile?.id ?? null
+
                 return (
-                  <Link key={job.id} href={`/artist/jobs/${job.id}`}
+                  <div
+                    key={job.id}
                     onMouseEnter={() => setHoveredJob(job.id)}
                     onMouseLeave={() => setHoveredJob(null)}
                     style={{
@@ -99,16 +106,20 @@ export default function ArtistJobsPage() {
                       background: isH ? 'rgba(255,255,255,0.05)' : 'rgba(255,255,255,0.03)',
                       border: `1px solid ${isH ? 'rgba(168,85,247,0.2)' : 'rgba(255,255,255,0.06)'}`,
                       borderRadius:18, textDecoration:'none', color:'inherit',
-                      transition:'all .25s ease', cursor:'pointer',
+                      transition:'all .25s ease', cursor:'default',
                       transform: isH ? 'translateX(3px)' : 'translateX(0)',
                       animation:`jFadeInUp .35s ease-out ${idx * 0.05}s both`,
-                    }}>
+                    }}
+                  >
+                    {/* Icon */}
+                    <Link href={`/artist/jobs/${job.id}`} style={{ textDecoration:'none', flexShrink:0 }}>
+                      <div style={{ width:46, height:46, borderRadius:13, background:'rgba(168,85,247,0.08)', border:'1px solid rgba(168,85,247,0.15)', display:'flex', alignItems:'center', justifyContent:'center', fontSize:20 }}>
+                        💼
+                      </div>
+                    </Link>
 
-                    <div style={{ width:46, height:46, borderRadius:13, background:'rgba(168,85,247,0.08)', border:'1px solid rgba(168,85,247,0.15)', display:'flex', alignItems:'center', justifyContent:'center', fontSize:20, flexShrink:0 }}>
-                      💼
-                    </div>
-
-                    <div style={{ flex:1, minWidth:0 }}>
+                    {/* Info — clicking title goes to job detail */}
+                    <Link href={`/artist/jobs/${job.id}`} style={{ flex:1, minWidth:0, textDecoration:'none', color:'inherit' }}>
                       <p style={{ fontSize:15, fontWeight:700, color:'#fff', margin:'0 0 4px 0', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{job.title}</p>
                       <div style={{ display:'flex', alignItems:'center', gap:10, flexWrap:'wrap' }}>
                         <span style={{ fontSize:12, color:'#71717a', fontWeight:500 }}>{job.category}</span>
@@ -124,9 +135,34 @@ export default function ArtistJobsPage() {
                             </span>
                           </>
                         )}
-                      </div>
-                    </div>
 
+                        {/* ── KHAPEETAR PROFILE LINK — shown when job is assigned ── */}
+                        {khapeetarProfileId && (
+                          <>
+                            <span style={{ fontSize:10, color:'#3f3f46' }}>·</span>
+                            <button
+                              onClick={e => { e.preventDefault(); router.push(`/artist/find-khapeetar/${khapeetarProfileId}`) }}
+                              onMouseEnter={() => setHoveredKhap(job.id)}
+                              onMouseLeave={() => setHoveredKhap(null)}
+                              style={{
+                                display: 'inline-flex', alignItems: 'center', gap: 4,
+                                background: isKhapH ? 'rgba(139,92,246,0.12)' : 'rgba(139,92,246,0.06)',
+                                border: `1px solid ${isKhapH ? 'rgba(139,92,246,0.3)' : 'rgba(139,92,246,0.15)'}`,
+                                borderRadius: 6, padding: '2px 8px',
+                                color: isKhapH ? '#c4b5fd' : '#a78bfa',
+                                fontSize: 11, fontWeight: 600,
+                                cursor: 'pointer', transition: 'all 0.2s ease',
+                                fontFamily: 'inherit',
+                              }}
+                            >
+                              {job.khapeetarProfile?.name ?? 'Khapeetar'} <ExternalLink size={10} />
+                            </button>
+                          </>
+                        )}
+                      </div>
+                    </Link>
+
+                    {/* Right side */}
                     <div style={{ display:'flex', alignItems:'center', gap:12, flexShrink:0 }}>
                       <div>
                         <p style={{ fontSize:10, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.08em', color:'#3f3f46', margin:'0 0 2px 0' }}>Budget</p>
@@ -136,9 +172,11 @@ export default function ArtistJobsPage() {
                         </p>
                       </div>
                       <div style={{ padding:'5px 12px', borderRadius:999, background:s.bg, border:`1px solid ${s.border}`, fontSize:11, fontWeight:700, color:s.color }}>{s.label}</div>
-                      <ChevronRight size={16} color="#3f3f46" />
+                      <Link href={`/artist/jobs/${job.id}`} style={{ textDecoration:'none' }}>
+                        <ChevronRight size={16} color="#3f3f46" />
+                      </Link>
                     </div>
-                  </Link>
+                  </div>
                 )
               })}
             </div>
