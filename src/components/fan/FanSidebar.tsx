@@ -12,6 +12,7 @@ import {
   LogOut,
   ChevronLeft,
   ChevronRight,
+  Info,
 } from 'lucide-react'
 import { signOut } from 'next-auth/react'
 
@@ -21,6 +22,7 @@ const navItems = [
   { icon: PieChart, label: 'My Investments', href: '/fan/investments' },
   { icon: Wallet, label: 'Wallet', href: '/fan/wallet' },
   { icon: User, label: 'Profile', href: '/fan/profile' },
+  { icon: Info, label: 'How It Works', href: '/how-it-works/fans' },
 ]
 
 interface Props {

@@ -31,7 +31,7 @@ export default function LandingPage() {
       pct: '45% of users share this archetype',
       actionLabel: 'Min. pledge ₹101',
       ctaText: 'Back a song →',
-      path: '/fan/signup'
+      path: '/fan/discover'
     },
     {
       id: 'artist',
@@ -241,7 +241,7 @@ export default function LandingPage() {
             <span className="fb-logo-pip"></span>FannyBags
           </div>
           <ul className="fb-nav-links">
-            <li><a onClick={() => router.push('/fan/signup')}>Discover</a></li>
+            <li><a onClick={() => router.push('/fan/discover')}>Discover</a></li>
             <li><a onClick={() => router.push('/khapeetar/signup')}>Marketplace</a></li>
             <li><a onClick={scrollToHIW}>How it works</a></li>
             <li><a onClick={scrollToContact}>Contact</a></li>

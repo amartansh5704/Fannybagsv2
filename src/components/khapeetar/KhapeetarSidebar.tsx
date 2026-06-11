@@ -15,6 +15,7 @@ import {
   Music,
   LogOut,
   Briefcase,
+  Info,
 } from 'lucide-react'
 
 const navItems = [
@@ -49,6 +50,7 @@ const navItems = [
     href: '/khapeetar/profile',
   },
   { icon: Briefcase, label: 'Find Jobs', href: '/khapeetar/jobs' },
+  { icon: Info, label: 'How It Works', href: '/how-it-works/khapeetars' },
 ]
 
 interface Props {
