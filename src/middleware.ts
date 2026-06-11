@@ -26,23 +26,29 @@ export async function middleware(req: NextRequest) {
     return NextResponse.next()
   }
 
+  // ── FAN DISCOVER — fully public, anyone can view ──────────────────────────
+  // Guests, artists, admins, khapeetars can all open shared song links
+  if (
+    pathname.startsWith('/fan/discover')
+  ) {
+    return NextResponse.next()
+  }
+
   // ARTIST ROUTES
   if (pathname.startsWith('/artist')) {
     if (!token) {
       return NextResponse.redirect(new URL('/artist/login', req.url))
     }
-
     if (token.role !== 'artist') {
       return NextResponse.redirect(new URL('/', req.url))
     }
   }
 
-  // FAN ROUTES
+  // FAN ROUTES — only non-discover fan pages require fan role
   if (pathname.startsWith('/fan')) {
     if (!token) {
       return NextResponse.redirect(new URL('/fan/login', req.url))
     }
-
     if (token.role !== 'fan') {
       return NextResponse.redirect(new URL('/', req.url))
     }
@@ -53,7 +59,6 @@ export async function middleware(req: NextRequest) {
     if (!token) {
       return NextResponse.redirect(new URL('/khapeetar/login', req.url))
     }
-
     if (token.role !== 'khapeetar') {
       return NextResponse.redirect(new URL('/', req.url))
     }
