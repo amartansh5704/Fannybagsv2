@@ -11,17 +11,21 @@ export default function SongDetailPage() {
   const { data: session, status } = useSession()
   const router  = useRouter()
   const params  = useParams()
-  const dialogRef     = useRef<HTMLDialogElement>(null)
+  const dialogRef       = useRef<HTMLDialogElement>(null)
   const signupDialogRef = useRef<HTMLDialogElement>(null)
 
-  const [song, setSong]         = useState<any>(null)
-  const [wallet, setWallet]     = useState<any>(null)
-  const [amount, setAmount]     = useState('')
-  const [loading, setLoading]   = useState(true)
-  const [investing, setInvesting]   = useState(false)
-  const [focused, setFocused]       = useState<string | null>(null)
-  const [hovered, setHovered]       = useState<string | null>(null)
+  const [song, setSong]               = useState<any>(null)
+  const [wallet, setWallet]           = useState<any>(null)
+  const [amount, setAmount]           = useState('')
+  const [loading, setLoading]         = useState(true)
+  const [investing, setInvesting]     = useState(false)
+  const [focused, setFocused]         = useState<string | null>(null)
+  const [hovered, setHovered]         = useState<string | null>(null)
   const [hoveredStat, setHoveredStat] = useState<string | null>(null)
+
+  // ── Only treat as fan if role is actually 'fan' ───────────────────────────
+  // Artists, admins, khapeetars who open a shared link are treated as guests
+  const isFan = session?.user?.role === 'fan'
 
   const loadWallet = async () => {
     const res  = await fetch('/api/wallet')
@@ -32,26 +36,25 @@ export default function SongDetailPage() {
   useEffect(() => {
     if (status === 'loading') return
 
-    // ── Song loads for EVERYONE ───────────────────────────────────────────
+    // Song loads for EVERYONE — no auth needed
     const fetches: Promise<any>[] = [
       fetch(`/api/songs/${params.id}`).then(r => r.json()),
     ]
 
-    // ── Wallet loads only if logged in ────────────────────────────────────
-    if (session) {
+    // Wallet loads ONLY for actual fan accounts
+    if (isFan) {
       fetches.push(fetch('/api/wallet').then(r => r.json()))
     }
 
     Promise.all(fetches).then(([songRes, walletRes]) => {
       if (songRes.success) setSong(songRes.data)
-      if (walletRes?.success) setWallet(walletRes.data.wallet)
+      if (isFan && walletRes?.success) setWallet(walletRes.data.wallet)
     }).finally(() => setLoading(false))
-  }, [session, status, params.id])
+  }, [status, params.id, isFan])
 
-  // ── Invest click handler — gate here ─────────────────────────────────────
+  // ── Invest click — gated to fan role only ────────────────────────────────
   const handleInvestClick = () => {
-    if (!session) {
-      // Guest — show signup prompt dialog
+    if (!isFan) {
       signupDialogRef.current?.showModal()
       return
     }
@@ -215,17 +218,17 @@ strong{font-weight:bold}
     )
   }
 
-  const progress           = Math.min(100, (song.campaign.amountRaised / song.campaign.totalFundingAsk) * 100)
-  const investAmount       = Number(amount || 0)
-  const insufficient       = investAmount > (wallet?.balance || 0)
-  const ownership          = investAmount > 0
+  const progress         = Math.min(100, (song.campaign.amountRaised / song.campaign.totalFundingAsk) * 100)
+  const investAmount     = Number(amount || 0)
+  const insufficient     = investAmount > (wallet?.balance || 0)
+  const ownership        = investAmount > 0
     ? ((investAmount / song.campaign.totalFundingAsk) * song.campaign.fanRevenueShare).toFixed(2)
     : '0'
-  const fanRevenueShare    = song.campaign.fanRevenueShare || 0
-  const totalFundingAsk    = song.campaign.totalFundingAsk || 0
-  const revenuePerStream   = 0.05
-  const fanPayoutPerStream = revenuePerStream * (fanRevenueShare / 100)
-  const breakevenStreams   = fanRevenueShare > 0 ? Math.round(totalFundingAsk / fanPayoutPerStream) : 0
+  const fanRevenueShare  = song.campaign.fanRevenueShare || 0
+  const totalFundingAsk  = song.campaign.totalFundingAsk || 0
+  const revenuePerStream = 0.05
+  const fanPayPerStream  = revenuePerStream * (fanRevenueShare / 100)
+  const breakevenStreams = fanRevenueShare > 0 ? Math.round(totalFundingAsk / fanPayPerStream) : 0
 
   const fmtStreams = (n: number) => {
     if (n >= 1_000_000_000) return `${(n/1_000_000_000).toFixed(1)}B`
@@ -234,32 +237,32 @@ strong{font-weight:bold}
     return n.toLocaleString('en-IN')
   }
 
-  // Stat cards — hide wallet card for guests
+  // ── Stat cards: fan sees wallet, everyone else sees investor count ─────────
   const statCards = [
-    { key:'target', label:'🎯 Target',        value:`₹${totalFundingAsk.toLocaleString('en-IN')}`,              color:'#d4d4d8', bg:'rgba(255,255,255,0.04)',  border:'rgba(255,255,255,0.06)'  },
-    { key:'raised', label:'💰 Raised',        value:`₹${song.campaign.amountRaised.toLocaleString('en-IN')}`,  color:'#f472b6', bg:'rgba(236,72,153,0.06)',    border:'rgba(236,72,153,0.12)'   },
-    { key:'share',  label:'📊 Revenue Share', value:`${fanRevenueShare}%`,                                      color:'#c084fc', bg:'rgba(168,85,247,0.06)',    border:'rgba(168,85,247,0.12)'   },
-    ...(session
-      ? [{ key:'wallet', label:'👛 Wallet', value:`₹${(wallet?.balance || 0).toLocaleString('en-IN')}`, color:'#34d399', bg:'rgba(16,185,129,0.06)', border:'rgba(16,185,129,0.12)' }]
-      : [{ key:'fans',   label:'👥 Investors', value: song.campaign.investments?.length ? `${song.campaign.investments.length}` : '0', color:'#fbbf24', bg:'rgba(245,158,11,0.06)', border:'rgba(245,158,11,0.12)' }]
+    { key:'target', label:'🎯 Target',        value:`₹${totalFundingAsk.toLocaleString('en-IN')}`,             color:'#d4d4d8', bg:'rgba(255,255,255,0.04)', border:'rgba(255,255,255,0.06)' },
+    { key:'raised', label:'💰 Raised',        value:`₹${song.campaign.amountRaised.toLocaleString('en-IN')}`, color:'#f472b6', bg:'rgba(236,72,153,0.06)',   border:'rgba(236,72,153,0.12)'  },
+    { key:'share',  label:'📊 Revenue Share', value:`${fanRevenueShare}%`,                                     color:'#c084fc', bg:'rgba(168,85,247,0.06)',   border:'rgba(168,85,247,0.12)'  },
+    ...(isFan
+      ? [{ key:'wallet',    label:'👛 Wallet',    value:`₹${(wallet?.balance || 0).toLocaleString('en-IN')}`,                                   color:'#34d399', bg:'rgba(16,185,129,0.06)',  border:'rgba(16,185,129,0.12)'  }]
+      : [{ key:'investors', label:'👥 Investors', value:`${song.campaign.investments?.length ?? 0}`, color:'#fbbf24', bg:'rgba(245,158,11,0.06)',  border:'rgba(245,158,11,0.12)'  }]
     ),
   ]
 
   return (
     <FanLayout>
       <style jsx global>{`
-        @keyframes sdFloatOrb    { 0%,100%{transform:translateY(0) scale(1)} 50%{transform:translateY(-20px) scale(1.05)} }
-        @keyframes sdFloatOrb2   { 0%,100%{transform:translateY(0) scale(1)} 50%{transform:translateY(-15px) scale(1.03)} }
-        @keyframes sdFadeInUp    { from{opacity:0;transform:translateY(24px)}  to{opacity:1;transform:translateY(0)} }
-        @keyframes sdFadeInLeft  { from{opacity:0;transform:translateX(-20px)} to{opacity:1;transform:translateX(0)} }
-        @keyframes sdFadeInRight { from{opacity:0;transform:translateX(20px)}  to{opacity:1;transform:translateX(0)} }
-        @keyframes sdFadeInStagger { from{opacity:0;transform:translateY(14px)} to{opacity:1;transform:translateY(0)} }
+        @keyframes sdFloatOrb      { 0%,100%{transform:translateY(0) scale(1)} 50%{transform:translateY(-20px) scale(1.05)} }
+        @keyframes sdFloatOrb2     { 0%,100%{transform:translateY(0) scale(1)} 50%{transform:translateY(-15px) scale(1.03)} }
+        @keyframes sdFadeInUp      { from{opacity:0;transform:translateY(24px)}  to{opacity:1;transform:translateY(0)} }
+        @keyframes sdFadeInLeft    { from{opacity:0;transform:translateX(-20px)} to{opacity:1;transform:translateX(0)} }
+        @keyframes sdFadeInRight   { from{opacity:0;transform:translateX(20px)}  to{opacity:1;transform:translateX(0)} }
+        @keyframes sdFadeInStagger { from{opacity:0;transform:translateY(14px)}  to{opacity:1;transform:translateY(0)} }
         @keyframes sdGradientShift { 0%{background-position:0% 50%} 50%{background-position:100% 50%} 100%{background-position:0% 50%} }
-        @keyframes sdShimmer     { 0%{background-position:-200% 0} 100%{background-position:200% 0} }
-        @keyframes sdImageReveal { from{opacity:0;transform:scale(1.04)} to{opacity:1;transform:scale(1)} }
-        @keyframes sdSpin        { from{transform:rotate(0deg)} to{transform:rotate(360deg)} }
-        @keyframes sdModalIn     { from{opacity:0;transform:scale(0.92) translateY(16px)} to{opacity:1;transform:scale(1) translateY(0)} }
-        @keyframes sdPop         { 0%{transform:scale(0.9);opacity:0} 60%{transform:scale(1.04)} 100%{transform:scale(1);opacity:1} }
+        @keyframes sdShimmer       { 0%{background-position:-200% 0} 100%{background-position:200% 0} }
+        @keyframes sdImageReveal   { from{opacity:0;transform:scale(1.04)} to{opacity:1;transform:scale(1)} }
+        @keyframes sdSpin          { from{transform:rotate(0deg)} to{transform:rotate(360deg)} }
+        @keyframes sdModalIn       { from{opacity:0;transform:scale(0.92) translateY(16px)} to{opacity:1;transform:scale(1) translateY(0)} }
+        @keyframes sdPop           { 0%{transform:scale(0.9);opacity:0} 60%{transform:scale(1.04)} 100%{transform:scale(1);opacity:1} }
         dialog::backdrop { background:rgba(0,0,0,0.8); backdrop-filter:blur(14px); }
         dialog { border:none; padding:0; background:transparent; }
         dialog[open] { animation:sdModalIn 0.3s ease-out; }
@@ -292,7 +295,6 @@ strong{font-weight:bold}
 
             {/* Left col */}
             <div style={{ animation:'sdFadeInLeft 0.6s ease-out' }}>
-              {/* Cover */}
               <div style={{ position:'relative', borderRadius:'20px', overflow:'hidden', aspectRatio:'1/1', background:'#0d0d12', boxShadow:'0 20px 60px rgba(0,0,0,0.5)' }}>
                 <div style={{ position:'absolute', inset:'-20px', background:'radial-gradient(circle at center,rgba(236,72,153,0.08) 0%,transparent 70%)', filter:'blur(20px)', pointerEvents:'none', zIndex:0 }} />
                 {song.coverArtUrl ? (
@@ -386,21 +388,18 @@ strong{font-weight:bold}
                 </p>
               </div>
 
-              {/* ── INVEST BUTTON — gated ─────────────────────────────────── */}
-              <button
-                onClick={handleInvestClick}
-                onMouseEnter={() => setHovered('invest')}
-                onMouseLeave={() => setHovered(null)}
-                style={{ position:'relative', width:'100%', padding:'18px', background:'linear-gradient(135deg,#ec4899,#f43f5e)', border:'none', borderRadius:'16px', color:'#fff', fontSize:'15px', fontWeight:700, cursor:'pointer', fontFamily:'inherit', transition:'all 0.3s cubic-bezier(0.4,0,0.2,1)', transform: hovered==='invest' ? 'translateY(-2px)' : 'translateY(0)', boxShadow: hovered==='invest' ? '0 8px 40px rgba(236,72,153,0.35),0 0 60px rgba(236,72,153,0.1)' : '0 4px 20px rgba(236,72,153,0.2)', overflow:'hidden', animation:'sdFadeInStagger 0.5s ease-out 0.6s both' }}
-              >
+              {/* ── INVEST BUTTON ─────────────────────────────────────────── */}
+              <button onClick={handleInvestClick}
+                onMouseEnter={() => setHovered('invest')} onMouseLeave={() => setHovered(null)}
+                style={{ position:'relative', width:'100%', padding:'18px', background:'linear-gradient(135deg,#ec4899,#f43f5e)', border:'none', borderRadius:'16px', color:'#fff', fontSize:'15px', fontWeight:700, cursor:'pointer', fontFamily:'inherit', transition:'all 0.3s cubic-bezier(0.4,0,0.2,1)', transform: hovered==='invest' ? 'translateY(-2px)' : 'translateY(0)', boxShadow: hovered==='invest' ? '0 8px 40px rgba(236,72,153,0.35),0 0 60px rgba(236,72,153,0.1)' : '0 4px 20px rgba(236,72,153,0.2)', overflow:'hidden', animation:'sdFadeInStagger 0.5s ease-out 0.6s both' }}>
                 {hovered==='invest' && <div style={{ position:'absolute', inset:0, background:'linear-gradient(90deg,transparent,rgba(255,255,255,0.12),transparent)', backgroundSize:'200% 100%', animation:'sdShimmer 1.5s linear infinite', pointerEvents:'none' }} />}
                 <span style={{ position:'relative' }}>
-                  {session ? '💎 Buy Revenue Share' : '💎 Sign Up to Invest'}
+                  {isFan ? '💎 Buy Revenue Share' : '💎 Sign Up to Invest'}
                 </span>
               </button>
 
-              {/* Guest nudge below button */}
-              {!session && (
+              {/* Guest nudge */}
+              {!isFan && (
                 <p style={{ textAlign:'center', fontSize:12, color:'#52525b', margin:0 }}>
                   Already have an account?{' '}
                   <Link href={`/fan/login?redirect=/fan/discover/${song.id}`} style={{ color:'#f472b6', textDecoration:'none', fontWeight:600 }}>
@@ -412,7 +411,7 @@ strong{font-weight:bold}
           </div>
         </div>
 
-        {/* ── INVEST DIALOG (logged in users) ──────────────────────────────── */}
+        {/* ── INVEST DIALOG (fan only) ──────────────────────────────────────── */}
         <dialog ref={dialogRef} style={{ width:'520px', maxWidth:'95vw', maxHeight:'90vh', borderRadius:'24px', overflow:'hidden', boxShadow:'0 25px 80px rgba(0,0,0,0.6),0 0 60px rgba(236,72,153,0.08)' }}>
           <div style={{ background:'#0f0f14', border:'1px solid rgba(255,255,255,0.08)', borderRadius:'24px', overflow:'hidden', display:'flex', flexDirection:'column', maxHeight:'90vh' }}>
             <div style={{ padding:'24px 28px', borderBottom:'1px solid rgba(255,255,255,0.06)', display:'flex', alignItems:'center', justifyContent:'space-between', background:'linear-gradient(180deg,rgba(255,255,255,0.03) 0%,transparent 100%)', flexShrink:0 }}>
@@ -429,13 +428,11 @@ strong{font-weight:bold}
             </div>
 
             <div style={{ padding:'24px 28px', overflowY:'auto', flex:1 }}>
-              {/* Wallet balance */}
               <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', background:'rgba(16,185,129,0.06)', border:'1px solid rgba(16,185,129,0.12)', borderRadius:'14px', padding:'14px 18px', marginBottom:'20px' }}>
                 <span style={{ fontSize:'13px', color:'#34d399', fontWeight:600 }}>👛 Wallet Balance</span>
                 <span style={{ fontSize:'15px', fontWeight:800, color:'#34d399' }}>₹{(wallet?.balance || 0).toLocaleString('en-IN')}</span>
               </div>
 
-              {/* Amount input */}
               <div style={{ marginBottom:'16px' }}>
                 <label style={{ display:'block', fontSize:'11px', fontWeight:600, textTransform:'uppercase', letterSpacing:'0.1em', color: focused==='invest-amount' ? '#f472b6' : '#52525b', marginBottom:'8px', transition:'color 0.3s ease' }}>
                   Investment Amount (₹)
@@ -451,7 +448,6 @@ strong{font-weight:bold}
                 </div>
               </div>
 
-              {/* Quick amounts */}
               <div style={{ display:'grid', gridTemplateColumns:'repeat(4,1fr)', gap:'8px', marginBottom:'20px' }}>
                 {[500,1000,2500,5000].map(amt => (
                   <button key={amt} onClick={() => setAmount(String(amt))}
@@ -462,7 +458,6 @@ strong{font-weight:bold}
                 ))}
               </div>
 
-              {/* Ownership preview */}
               {investAmount > 0 && (
                 <div style={{ background:'linear-gradient(135deg,rgba(236,72,153,0.06),rgba(168,85,247,0.04))', border:'1px solid rgba(236,72,153,0.12)', borderRadius:'14px', padding:'16px 18px', marginBottom:'16px' }}>
                   <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center' }}>
@@ -472,13 +467,11 @@ strong{font-weight:bold}
                 </div>
               )}
 
-              {/* Contract note */}
               <div style={{ display:'flex', alignItems:'center', gap:8, padding:'11px 14px', background:'rgba(236,72,153,0.04)', border:'1px solid rgba(236,72,153,0.1)', borderRadius:12, marginBottom:'16px' }}>
                 <span style={{ fontSize:14 }}>📄</span>
                 <p style={{ fontSize:11, color:'#71717a', margin:0 }}>A <strong style={{ color:'#f472b6' }}>Royalty Contract</strong> will auto-download after confirmation.</p>
               </div>
 
-              {/* Insufficient balance */}
               {insufficient && (
                 <div style={{ display:'flex', alignItems:'center', gap:'10px', background:'rgba(239,68,68,0.06)', border:'1px solid rgba(239,68,68,0.15)', borderRadius:'14px', padding:'14px 16px', marginBottom:'16px' }}>
                   <span style={{ fontSize:'14px' }}>⚠️</span>
@@ -486,7 +479,6 @@ strong{font-weight:bold}
                 </div>
               )}
 
-              {/* Action buttons */}
               <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:'12px' }}>
                 <button onClick={() => dialogRef.current?.close()}
                   onMouseEnter={() => setHovered('modal-cancel')} onMouseLeave={() => setHovered(null)}
@@ -508,23 +500,15 @@ strong{font-weight:bold}
           </div>
         </dialog>
 
-        {/* ── SIGNUP PROMPT DIALOG (guests) ────────────────────────────────── */}
+        {/* ── SIGNUP PROMPT DIALOG (non-fan / guest) ───────────────────────── */}
         <dialog ref={signupDialogRef} style={{ width:'440px', maxWidth:'95vw', borderRadius:'24px', overflow:'hidden', boxShadow:'0 25px 80px rgba(0,0,0,0.7)' }}>
           <div style={{ background:'#0f0f14', border:'1px solid rgba(255,255,255,0.08)', borderRadius:'24px', overflow:'hidden' }}>
             <div style={{ padding:'28px', textAlign:'center' }}>
-              {/* Icon */}
-              <div style={{ width:64, height:64, borderRadius:20, background:'linear-gradient(135deg,rgba(236,72,153,0.15),rgba(168,85,247,0.1))', border:'1px solid rgba(236,72,153,0.2)', display:'flex', alignItems:'center', justifyContent:'center', margin:'0 auto 20px', fontSize:28 }}>
-                💎
-              </div>
-
-              <h2 style={{ fontSize:22, fontWeight:800, color:'#fff', margin:'0 0 8px 0' }}>
-                Join to Invest
-              </h2>
+              <div style={{ width:64, height:64, borderRadius:20, background:'linear-gradient(135deg,rgba(236,72,153,0.15),rgba(168,85,247,0.1))', border:'1px solid rgba(236,72,153,0.2)', display:'flex', alignItems:'center', justifyContent:'center', margin:'0 auto 20px', fontSize:28 }}>💎</div>
+              <h2 style={{ fontSize:22, fontWeight:800, color:'#fff', margin:'0 0 8px 0' }}>Join to Invest</h2>
               <p style={{ fontSize:14, color:'#71717a', margin:'0 0 28px 0', lineHeight:1.6 }}>
-                Create a free account to invest in <strong style={{ color:'#fff' }}>{song.title}</strong> and earn royalties every time it streams.
+                Create a free fan account to invest in <strong style={{ color:'#fff' }}>{song.title}</strong> and earn royalties every time it streams.
               </p>
-
-              {/* Perks */}
               <div style={{ display:'flex', flexDirection:'column', gap:10, marginBottom:28, textAlign:'left' }}>
                 {[
                   { icon:'🎵', text:'Earn royalties from every stream' },
@@ -537,27 +521,19 @@ strong{font-weight:bold}
                   </div>
                 ))}
               </div>
-
-              {/* Actions */}
               <div style={{ display:'flex', flexDirection:'column', gap:10 }}>
-                <Link
-                  href={`/fan/signup?redirect=/fan/discover/${song.id}`}
+                <Link href={`/fan/signup?redirect=/fan/discover/${song.id}`}
                   style={{ display:'block', padding:'16px', borderRadius:14, background:'linear-gradient(135deg,#ec4899,#f43f5e)', color:'#fff', fontSize:15, fontWeight:700, textDecoration:'none', textAlign:'center', boxShadow:'0 4px 20px rgba(236,72,153,0.3)' }}
-                  onClick={() => signupDialogRef.current?.close()}
-                >
-                  Create Free Account →
+                  onClick={() => signupDialogRef.current?.close()}>
+                  Create Free Fan Account →
                 </Link>
-                <Link
-                  href={`/fan/login?redirect=/fan/discover/${song.id}`}
+                <Link href={`/fan/login?redirect=/fan/discover/${song.id}`}
                   style={{ display:'block', padding:'14px', borderRadius:14, background:'rgba(255,255,255,0.04)', border:'1px solid rgba(255,255,255,0.08)', color:'#a1a1aa', fontSize:14, fontWeight:600, textDecoration:'none', textAlign:'center' }}
-                  onClick={() => signupDialogRef.current?.close()}
-                >
-                  Already have an account? Log in
+                  onClick={() => signupDialogRef.current?.close()}>
+                  Already have a fan account? Log in
                 </Link>
-                <button
-                  onClick={() => signupDialogRef.current?.close()}
-                  style={{ padding:'10px', background:'none', border:'none', color:'#52525b', fontSize:12, cursor:'pointer', fontFamily:'inherit' }}
-                >
+                <button onClick={() => signupDialogRef.current?.close()}
+                  style={{ padding:'10px', background:'none', border:'none', color:'#52525b', fontSize:12, cursor:'pointer', fontFamily:'inherit' }}>
                   Continue browsing
                 </button>
               </div>
