@@ -2,6 +2,7 @@
 
 import { useState, useRef } from 'react'
 import { Plus, X, Upload, Music2, Loader2, Image as ImageIcon } from 'lucide-react'
+import { uploadFile } from '@/lib/upload'
 
 const GENRES = [
   'Hip-Hop / Rap', 'Indie Pop', 'R&B / Soul', 'Electronic',
@@ -79,54 +80,41 @@ export default function DistributionDetail({ data, onChange }: Props) {
 
   // ── Song file upload to Cloudinary ────────────────────────────
   const handleSongFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
-    if (!file) return
-    e.target.value = ''
+  const file = e.target.files?.[0]
+  if (!file) return
+  e.target.value = ''
 
-    if (file.size > 100 * 1024 * 1024) {
-      setSongUploadError('File must be under 100MB')
-      return
-    }
+  setSongUploading(true)
+  setSongUploadError('')
 
-    setSongUploading(true)
-    setSongUploadError('')
-
-    try {
-      const formData = new FormData()
-      formData.append('file', file)
-      const res = await fetch('/api/upload', { method: 'POST', body: formData })
-      const json = await res.json()
-      if (!json.success) throw new Error(json.error || 'Upload failed')
-      onChange({ ...data, songFileUrl: json.url })
-    } catch (err: unknown) {
-      setSongUploadError(err instanceof Error ? err.message : 'Upload failed')
-    } finally {
-      setSongUploading(false)
-    }
+  try {
+    const url = await uploadFile(file)
+    onChange({ ...data, songFileUrl: url })
+  } catch (err: unknown) {
+    setSongUploadError(err instanceof Error ? err.message : 'Upload failed')
+  } finally {
+    setSongUploading(false)
   }
+}
 
   // ── Cover art (distribution) upload to Cloudinary ─────────────
   const handleCoverDistUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
-    if (!file) return
-    e.target.value = ''
+  const file = e.target.files?.[0]
+  if (!file) return
+  e.target.value = ''
 
-    setCoverDistUploading(true)
-    setCoverDistError('')
+  setCoverDistUploading(true)
+  setCoverDistError('')
 
-    try {
-      const formData = new FormData()
-      formData.append('file', file)
-      const res = await fetch('/api/upload', { method: 'POST', body: formData })
-      const json = await res.json()
-      if (!json.success) throw new Error(json.error || 'Upload failed')
-      onChange({ ...data, coverArtDist: json.url })
-    } catch (err: unknown) {
-      setCoverDistError(err instanceof Error ? err.message : 'Upload failed')
-    } finally {
-      setCoverDistUploading(false)
-    }
+  try {
+    const url = await uploadFile(file)
+    onChange({ ...data, coverArtDist: url })
+  } catch (err: unknown) {
+    setCoverDistError(err instanceof Error ? err.message : 'Upload failed')
+  } finally {
+    setCoverDistUploading(false)
   }
+}
 
   return (
     <>
@@ -410,6 +398,18 @@ export default function DistributionDetail({ data, onChange }: Props) {
                 </div>
               )}
 
+              <p style={{ fontSize:11, color:'#52525b', marginTop:8, lineHeight:1.6 }}>
+  File too large?{' '}
+  <a
+    href="https://www.freeconvert.com/image-compressor"
+    target="_blank"
+    rel="noreferrer"
+    style={{ color:'#c084fc', textDecoration:'none', fontWeight:700 }}
+  >
+    Compress image free here ↗
+  </a>
+</p>
+
               {coverDistError && <div className="errorBox">⚠ {coverDistError} — please try again</div>}
             </div>
 
@@ -443,9 +443,21 @@ export default function DistributionDetail({ data, onChange }: Props) {
                     role="button" tabIndex={0} onKeyDown={e => e.key === 'Enter' && songFileRef.current?.click()}>
                     <Upload size={30} style={{ color: '#7c3aed' }} />
                     <div className="uploadTitle">{data.releaseType === 'album' ? 'Upload Album / EP Files' : 'Upload Song File'}</div>
-                    <div className="uploadSub">MP3 Only — max 4.5MB</div>
+                    <div className="uploadSub">MP3, WAV, FLAC — max 20MB</div>
                   </div>
                 )}
+
+                <p style={{ fontSize:11, color:'#52525b', marginTop:8, lineHeight:1.6 }}>
+  File too large?{' '}
+  <a
+    href="https://www.freeconvert.com/wav-compressor"
+    target="_blank"
+    rel="noreferrer"
+    style={{ color:'#c084fc', textDecoration:'none', fontWeight:700 }}
+  >
+    Compress audio free here ↗
+  </a>
+</p>
 
                 {songUploadError && <div className="errorBox">⚠ {songUploadError} — please try again</div>}
               </div>

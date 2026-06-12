@@ -2,6 +2,7 @@
 
 import { useRef, useState } from 'react'
 import { Upload, X, Music, Image as ImageIcon, Loader2 } from 'lucide-react'
+import { uploadFile } from '@/lib/upload'
 
 interface SongDetailData {
   title: string
@@ -23,6 +24,15 @@ const LANGUAGES = [
   'Bengali', 'Marathi', 'Kannada', 'Bhojpuri', 'Mixed / Hinglish',
 ]
 
+const STOCK_COVERS = [
+  { src: '/stock/stock1.jpg', label: 'Sher' },
+  { src: '/stock/stock2.jpg', label: 'Khapeetar' },
+  { src: '/stock/stock3.jpg', label: 'Mustafa' },
+  { src: '/stock/stock4.jpg', label: 'Velli' },
+  { src: '/stock/stock5.jpg', label: 'Shura' },
+  { src: '/stock/stock6.jpg', label: 'Casty' },
+]
+
 export default function SongDetail({ data, onChange }: Props) {
   const demoInputRef  = useRef<HTMLInputElement>(null)
   const coverInputRef = useRef<HTMLInputElement>(null)
@@ -35,31 +45,17 @@ export default function SongDetail({ data, onChange }: Props) {
   const update = (key: keyof SongDetailData, val: unknown) =>
     onChange({ ...data, [key]: val })
 
-  // ── DEMO — uploads immediately to Cloudinary ─────────────────────────
   const handleDemoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (!file) return
     e.target.value = ''
 
-    if (file.size > 100 * 1024 * 1024) {
-      setDemoError('Demo must be under 100MB')
-      return
-    }
-
     setDemoUploading(true)
     setDemoError('')
 
     try {
-      const formData = new FormData()
-      formData.append('file', file)
-
-      const res  = await fetch('/api/upload', { method: 'POST', body: formData })
-      const json = await res.json()
-
-      if (!json.success) throw new Error(json.error || 'Upload failed')
-
-      // json.url is now a real Cloudinary URL
-      onChange({ ...data, demoFile: file, demoUrl: json.url })
+      const url = await uploadFile(file)
+      onChange({ ...data, demoFile: file, demoUrl: url })
     } catch (err: unknown) {
       setDemoError(err instanceof Error ? err.message : 'Upload failed')
     } finally {
@@ -72,7 +68,6 @@ export default function SongDetail({ data, onChange }: Props) {
     onChange({ ...data, demoFile: null, demoUrl: '' })
   }
 
-  // ── COVER — uploads immediately to Cloudinary ─────────────────────────
   const handleCoverUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (!file) return
@@ -82,16 +77,8 @@ export default function SongDetail({ data, onChange }: Props) {
     setCoverError('')
 
     try {
-      const formData = new FormData()
-      formData.append('file', file)
-
-      const res  = await fetch('/api/upload', { method: 'POST', body: formData })
-      const json = await res.json()
-
-      if (!json.success) throw new Error(json.error || 'Upload failed')
-
-      // json.url is now a real Cloudinary URL
-      onChange({ ...data, coverArtFile: file, coverArtUrl: json.url })
+      const url = await uploadFile(file)
+      onChange({ ...data, coverArtFile: file, coverArtUrl: url })
     } catch (err: unknown) {
       setCoverError(err instanceof Error ? err.message : 'Upload failed')
     } finally {
@@ -355,10 +342,22 @@ export default function SongDetail({ data, onChange }: Props) {
             >
               <Upload size={22} className="sd-upload-icon" />
               <div className="sd-upload-main">Upload demo track</div>
-              <div className="sd-upload-sub">MP3 Only — max 4.5MB</div>
+              <div className="sd-upload-sub">MP3, WAV, FLAC — max 20MB</div>
               <span className="sd-upload-btn-hint">Click to browse files</span>
             </div>
           )}
+
+          <p style={{ fontSize:11, color:'#52525b', marginTop:8, lineHeight:1.6 }}>
+            File too large?{' '}
+            <a
+              href="https://www.freeconvert.com/wav-compressor"
+              target="_blank"
+              rel="noreferrer"
+              style={{ color:'#c084fc', textDecoration:'none', fontWeight:700 }}
+            >
+              Compress audio free here ↗
+            </a>
+          </p>
 
           {demoError && (
             <div className="sd-error-box">⚠ {demoError} — please try again</div>
@@ -376,12 +375,17 @@ export default function SongDetail({ data, onChange }: Props) {
             </div>
           )}
 
-          {!coverUploading && data.coverArtFile && data.coverArtUrl && (
+          {/* ── Cover preview — works for both uploaded and stock ──────────── */}
+          {!coverUploading && data.coverArtUrl && (
             <div className="sd-cover-card">
               <img src={data.coverArtUrl} alt="cover" className="sd-cover-img" />
               <div className="sd-cover-info">
-                <div className="sd-cover-name">{data.coverArtFile.name}</div>
-                <div className="sd-cover-status">✓ Uploaded to cloud</div>
+                <div className="sd-cover-name">
+                  {data.coverArtFile?.name || 'Stock Cover Art'}
+                </div>
+                <div className="sd-cover-status">
+                  {data.coverArtFile ? '✓ Uploaded to cloud' : '✓ Stock image selected'}
+                </div>
                 <button type="button" className="sd-cover-remove" onClick={removeCover}>
                   Remove cover
                 </button>
@@ -389,6 +393,7 @@ export default function SongDetail({ data, onChange }: Props) {
             </div>
           )}
 
+          {/* ── Upload zone — only when no cover selected ─────────────────── */}
           {!coverUploading && !data.coverArtUrl && (
             <div
               className="sd-upload-zone"
@@ -401,6 +406,89 @@ export default function SongDetail({ data, onChange }: Props) {
               <div className="sd-upload-main">Upload cover art</div>
               <div className="sd-upload-sub">JPG, PNG, WEBP — min 500×500px recommended</div>
               <span className="sd-upload-btn-hint">Click to browse files</span>
+            </div>
+          )}
+
+          <p style={{ fontSize:11, color:'#52525b', marginTop:8, lineHeight:1.6 }}>
+            File too large?{' '}
+            <a
+              href="https://www.freeconvert.com/image-compressor"
+              target="_blank"
+              rel="noreferrer"
+              style={{ color:'#c084fc', textDecoration:'none', fontWeight:700 }}
+            >
+              Compress image free here ↗
+            </a>
+          </p>
+
+          {/* ── STOCK IMAGE SELECTOR ──────────────────────────────────────── */}
+          {!coverUploading && !data.coverArtUrl && (
+            <div style={{ marginTop: 16 }}>
+              <div style={{ display:'flex', alignItems:'center', gap:10, marginBottom:12 }}>
+                <div style={{ flex:1, height:'0.5px', background:'rgba(255,255,255,0.06)' }} />
+                <span style={{ fontSize:10, fontWeight:700, textTransform:'uppercase', letterSpacing:'1.5px', color:'#2a2a3a', whiteSpace:'nowrap' }}>
+                  Or pick a stock cover
+                </span>
+                <div style={{ flex:1, height:'0.5px', background:'rgba(255,255,255,0.06)' }} />
+              </div>
+              <div style={{ display:'grid', gridTemplateColumns:'repeat(3, 1fr)', gap:10 }}>
+                {STOCK_COVERS.map((stock) => (
+                  <div
+                    key={stock.src}
+                    onClick={() => onChange({ ...data, coverArtUrl: stock.src, coverArtFile: null })}
+                    role="button"
+                    tabIndex={0}
+                    onKeyDown={e => e.key === 'Enter' && onChange({ ...data, coverArtUrl: stock.src, coverArtFile: null })}
+                    style={{
+                      position:'relative', overflow:'hidden',
+                      borderRadius:12, cursor:'pointer',
+                      border:'1px solid rgba(255,255,255,0.08)',
+                      transition:'all 0.25s ease',
+                      aspectRatio:'1/1',
+                    }}
+                    onMouseEnter={e => {
+                      e.currentTarget.style.borderColor = 'rgba(124,58,237,0.5)'
+                      e.currentTarget.style.transform   = 'translateY(-3px) scale(1.03)'
+                      e.currentTarget.style.boxShadow   = '0 8px 24px rgba(124,58,237,0.2)'
+                    }}
+                    onMouseLeave={e => {
+                      e.currentTarget.style.borderColor = 'rgba(255,255,255,0.08)'
+                      e.currentTarget.style.transform   = 'translateY(0) scale(1)'
+                      e.currentTarget.style.boxShadow   = 'none'
+                    }}
+                  >
+                    <img
+                      src={stock.src}
+                      alt={stock.label}
+                      style={{
+                        width:'100%', height:'100%',
+                        objectFit:'cover', display:'block',
+                      }}
+                    />
+                    <div style={{
+                      position:'absolute', inset:0,
+                      background:'linear-gradient(to top, rgba(0,0,0,0.7) 0%, transparent 60%)',
+                      display:'flex', alignItems:'flex-end', justifyContent:'center',
+                      padding:'10px',
+                      opacity:0,
+                      transition:'opacity 0.25s ease',
+                    }}
+                    onMouseEnter={e => { e.currentTarget.style.opacity = '1' }}
+                    onMouseLeave={e => { e.currentTarget.style.opacity = '0' }}
+                    >
+                      <span style={{
+                        fontSize:11, fontWeight:700, color:'#fff',
+                        background:'rgba(124,58,237,0.6)',
+                        backdropFilter:'blur(8px)',
+                        padding:'4px 12px', borderRadius:999,
+                        letterSpacing:'0.02em',
+                      }}>
+                        Use {stock.label}
+                      </span>
+                    </div>
+                  </div>
+                ))}
+              </div>
             </div>
           )}
 
