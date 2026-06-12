@@ -3,6 +3,11 @@ import cloudinary from '@/lib/cloudinary'
 
 export const dynamic = 'force-dynamic'
 
+console.log('[SIGN] cloudName:', process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME)
+console.log('[SIGN] apiKey:', process.env.CLOUDINARY_API_KEY)
+console.log('[SIGN] apiSecret:', process.env.CLOUDINARY_API_SECRET)
+
+
 export async function POST(req: NextRequest) {
   try {
     const body      = await req.json()
@@ -43,7 +48,7 @@ export async function POST(req: NextRequest) {
       signature,
       folder,
       resourceType,
-      cloudName:    process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME,
+      cloudName: process.env.CLOUDINARY_CLOUD_NAME,
       apiKey:       process.env.CLOUDINARY_API_KEY,
     })
 
