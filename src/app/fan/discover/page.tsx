@@ -4,23 +4,38 @@ import { useEffect, useState } from 'react'
 import { useSession } from 'next-auth/react'
 import Link from 'next/link'
 import FanLayout from '@/components/fan/FanLayout'
-import { Loader2, Music } from 'lucide-react'
+import { Loader2, Music, Search, X } from 'lucide-react'
 
 export default function FanDiscoverPage() {
   const { data: session, status } = useSession()
 
-  const [songs, setSongs]           = useState<any[]>([])
-  const [loading, setLoading]       = useState(true)
-  const [hoveredCard, setHoveredCard] = useState<string | null>(null)
+  const [songs, setSongs]               = useState<any[]>([])
+  const [loading, setLoading]           = useState(true)
+  const [hoveredCard, setHoveredCard]   = useState<string | null>(null)
+  const [searchQuery, setSearchQuery]   = useState('')
+  const [searchFocused, setSearchFocused] = useState(false)
 
   useEffect(() => {
-    // ── Load for EVERYONE — no auth required ─────────────────────────────
     if (status === 'loading') return
     fetch('/api/fan/discover')
       .then(r => r.json())
       .then(j => { if (j.success) setSongs(j.data) })
       .finally(() => setLoading(false))
   }, [status])
+
+  // ── Filter songs by search query ──────────────────────────────────────────
+  const filteredSongs = songs.filter(song => {
+    if (!searchQuery.trim()) return true
+    const q = searchQuery.toLowerCase().trim()
+    return (
+      song.title?.toLowerCase().includes(q) ||
+      song.artist?.name?.toLowerCase().includes(q) ||
+      song.language?.toLowerCase().includes(q) ||
+      song.genre?.toLowerCase().includes(q) ||
+      song.description?.toLowerCase().includes(q) ||
+      song.campaign?.campaignStory?.toLowerCase().includes(q)
+    )
+  })
 
   if (status === 'loading' || loading) {
     return (
@@ -90,7 +105,6 @@ export default function FanDiscoverPage() {
                 </div>
               )}
 
-              {/* Guest CTA — sign up prompt in header */}
               {!session && (
                 <div style={{ display:'flex', alignItems:'center', gap:8 }}>
                   <Link href="/fan/login" style={{ padding:'8px 16px', borderRadius:10, background:'rgba(255,255,255,0.05)', border:'1px solid rgba(255,255,255,0.1)', color:'#a1a1aa', fontSize:13, fontWeight:600, textDecoration:'none', transition:'all 0.2s' }}>
@@ -124,6 +138,99 @@ export default function FanDiscoverPage() {
 
         {/* Content */}
         <div style={{ position:'relative', zIndex:1, padding:'28px 32px', maxWidth:'1400px', margin:'0 auto' }}>
+
+          {/* ── SEARCH BAR ──────────────────────────────────────────────────── */}
+          {songs.length > 0 && (
+            <div style={{
+              marginBottom:28,
+              animation:'fanDiscoverFadeInUp 0.4s ease-out',
+            }}>
+              <div style={{
+                position:'relative',
+                maxWidth:600,
+                margin:'0 auto',
+              }}>
+                {/* Search icon */}
+                <div style={{
+                  position:'absolute', left:18, top:'50%', transform:'translateY(-50%)',
+                  display:'flex', alignItems:'center', justifyContent:'center',
+                  pointerEvents:'none', zIndex:2,
+                }}>
+                  <Search size={18} color={searchFocused ? '#f472b6' : '#3f3f46'} style={{ transition:'color 0.3s ease' }} />
+                </div>
+
+                {/* Input */}
+                <input
+                  type="text"
+                  value={searchQuery}
+                  onChange={e => setSearchQuery(e.target.value)}
+                  onFocus={() => setSearchFocused(true)}
+                  onBlur={() => setSearchFocused(false)}
+                  placeholder="Search by song name, artist, language, genre..."
+                  style={{
+                    width:'100%',
+                    padding:'16px 48px 16px 50px',
+                    background: searchFocused
+                      ? 'linear-gradient(135deg,rgba(255,255,255,0.06),rgba(236,72,153,0.03))'
+                      : 'rgba(255,255,255,0.04)',
+                    border: `1px solid ${searchFocused ? 'rgba(236,72,153,0.35)' : 'rgba(255,255,255,0.08)'}`,
+                    borderRadius:18,
+                    color:'#fff',
+                    fontSize:15,
+                    fontWeight:500,
+                    fontFamily:'inherit',
+                    outline:'none',
+                    transition:'all 0.3s ease',
+                    boxSizing:'border-box',
+                    boxShadow: searchFocused ? '0 0 0 4px rgba(236,72,153,0.06), 0 8px 32px rgba(0,0,0,0.2)' : '0 2px 8px rgba(0,0,0,0.1)',
+                  }}
+                />
+
+                {/* Clear button */}
+                {searchQuery && (
+                  <button
+                    onClick={() => setSearchQuery('')}
+                    style={{
+                      position:'absolute', right:14, top:'50%', transform:'translateY(-50%)',
+                      width:28, height:28, borderRadius:8,
+                      background:'rgba(255,255,255,0.06)',
+                      border:'1px solid rgba(255,255,255,0.1)',
+                      color:'#71717a',
+                      display:'flex', alignItems:'center', justifyContent:'center',
+                      cursor:'pointer', transition:'all 0.2s ease',
+                      fontFamily:'inherit', zIndex:2,
+                    }}
+                    onMouseEnter={e => { e.currentTarget.style.background='rgba(236,72,153,0.12)'; e.currentTarget.style.color='#f472b6'; e.currentTarget.style.borderColor='rgba(236,72,153,0.25)' }}
+                    onMouseLeave={e => { e.currentTarget.style.background='rgba(255,255,255,0.06)'; e.currentTarget.style.color='#71717a'; e.currentTarget.style.borderColor='rgba(255,255,255,0.1)' }}
+                  >
+                    <X size={14} />
+                  </button>
+                )}
+              </div>
+
+              {/* Search result count */}
+              {searchQuery.trim() && (
+                <div style={{ textAlign:'center', marginTop:12 }}>
+                  <span style={{
+                    display:'inline-flex', alignItems:'center', gap:6,
+                    padding:'6px 14px',
+                    background: filteredSongs.length > 0 ? 'rgba(236,72,153,0.06)' : 'rgba(239,68,68,0.06)',
+                    border: `1px solid ${filteredSongs.length > 0 ? 'rgba(236,72,153,0.12)' : 'rgba(239,68,68,0.12)'}`,
+                    borderRadius:999,
+                    fontSize:12, fontWeight:700,
+                    color: filteredSongs.length > 0 ? '#f472b6' : '#f87171',
+                  }}>
+                    {filteredSongs.length > 0
+                      ? `${filteredSongs.length} result${filteredSongs.length !== 1 ? 's' : ''} for "${searchQuery}"`
+                      : `No results for "${searchQuery}"`
+                    }
+                  </span>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* ── SONG GRID ───────────────────────────────────────────────────── */}
           {songs.length === 0 ? (
             <div style={{ display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', padding:'100px 0', animation:'fanDiscoverFadeInUp 0.6s ease-out' }}>
               <div style={{ width:'80px', height:'80px', borderRadius:'24px', background:'linear-gradient(135deg,rgba(255,255,255,0.04),rgba(255,255,255,0.01))', border:'1px solid rgba(255,255,255,0.06)', display:'flex', alignItems:'center', justifyContent:'center', marginBottom:'20px' }}>
@@ -132,9 +239,37 @@ export default function FanDiscoverPage() {
               <p style={{ fontSize:'16px', fontWeight:600, color:'#52525b', margin:'0 0 4px 0' }}>No live campaigns</p>
               <p style={{ fontSize:'13px', color:'#3f3f46', margin:0 }}>Active artist campaigns will appear here</p>
             </div>
+          ) : filteredSongs.length === 0 ? (
+            /* ── No search results ─────────────────────────────────────────── */
+            <div style={{ display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', padding:'80px 0', animation:'fanDiscoverFadeInUp 0.4s ease-out' }}>
+              <div style={{ width:'72px', height:'72px', borderRadius:'20px', background:'rgba(255,255,255,0.03)', border:'1px solid rgba(255,255,255,0.06)', display:'flex', alignItems:'center', justifyContent:'center', marginBottom:'16px' }}>
+                <Search size={28} color="#27272a" />
+              </div>
+              <p style={{ fontSize:'16px', fontWeight:600, color:'#52525b', margin:'0 0 6px 0' }}>
+                No songs match &ldquo;{searchQuery}&rdquo;
+              </p>
+              <p style={{ fontSize:'13px', color:'#3f3f46', margin:'0 0 16px 0' }}>
+                Try a different search term
+              </p>
+              <button
+                onClick={() => setSearchQuery('')}
+                style={{
+                  display:'inline-flex', alignItems:'center', gap:6,
+                  padding:'10px 20px', borderRadius:12,
+                  background:'rgba(236,72,153,0.08)',
+                  border:'1px solid rgba(236,72,153,0.15)',
+                  color:'#f472b6', fontSize:13, fontWeight:700,
+                  cursor:'pointer', transition:'all 0.2s', fontFamily:'inherit',
+                }}
+                onMouseEnter={e => { e.currentTarget.style.background='rgba(236,72,153,0.15)' }}
+                onMouseLeave={e => { e.currentTarget.style.background='rgba(236,72,153,0.08)' }}
+              >
+                <X size={14} /> Clear search
+              </button>
+            </div>
           ) : (
             <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill,minmax(300px,1fr))', gap:'20px' }}>
-              {songs.map((song, index) => {
+              {filteredSongs.map((song, index) => {
                 const progress  = Math.min(100, (song.campaign.amountRaised / song.campaign.totalFundingAsk) * 100)
                 const isHovered = hoveredCard === song.id
 
@@ -177,7 +312,6 @@ export default function FanDiscoverPage() {
 
                       <div style={{ position:'absolute', bottom:0, left:0, right:0, height:'60%', background:'linear-gradient(to top,rgba(6,6,10,0.85) 0%,transparent 100%)', opacity: isHovered ? 1 : 0, transition:'opacity 0.4s ease' }} />
 
-                      {/* Hover CTA — changes based on auth */}
                       {isHovered && (
                         <div style={{ position:'absolute', bottom:'14px', left:'50%', transform:'translateX(-50%)', display:'flex', alignItems:'center', gap:'6px', padding:'8px 18px', background:'linear-gradient(135deg,rgba(236,72,153,0.9),rgba(244,63,94,0.9))', borderRadius:'20px', fontSize:'12px', fontWeight:700, color:'#fff', whiteSpace:'nowrap', backdropFilter:'blur(8px)', boxShadow:'0 4px 20px rgba(236,72,153,0.3)', animation:'fanDiscoverFadeInUp 0.2s ease-out' }}>
                           {session ? '✦ Invest Now' : '✦ View & Invest'}
@@ -196,7 +330,6 @@ export default function FanDiscoverPage() {
                         </p>
                       </div>
 
-                      {/* Funding */}
                       <div>
                         <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-end', marginBottom:'10px' }}>
                           <div>
@@ -213,7 +346,6 @@ export default function FanDiscoverPage() {
                           </div>
                         </div>
 
-                        {/* Progress bar */}
                         <div style={{ position:'relative', width:'100%', height:'6px', background:'rgba(255,255,255,0.05)', borderRadius:'3px', overflow:'hidden', marginBottom:'10px' }}>
                           <div style={{ height:'100%', width:`${progress}%`, background:'linear-gradient(90deg,#ec4899,#f43f5e)', backgroundSize:'200% 100%', animation: isHovered ? 'fanDiscoverGradientShift 2s ease-in-out infinite' : 'none', borderRadius:'3px', boxShadow: isHovered ? '0 0 10px rgba(236,72,153,0.4)' : 'none', transition:'box-shadow 0.3s ease' }} />
                           {isHovered && (
